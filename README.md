@@ -1,5 +1,8 @@
 # 森林小屋 · Forest Cabin
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-2ea44f.svg)](./LICENSE)
+[![three.js](https://img.shields.io/badge/three.js-r160-000000.svg)](https://threejs.org/)
+
 > 一个跑在浏览器里的 3D 森林小屋。四季轮转、天气变化、节日主题、程序化配乐与字幕叙事。
 > 纯静态、零构建、零外部依赖（three.js 已本地化），克隆下来起个静态服务器就能离线运行。
 
@@ -92,7 +95,9 @@ Chrome / Edge / Firefox / Safari 新版均可（需 WebGL2）。移动端已做�
 
 ## 许可
 
-[MIT](./LICENSE)
+本项目采用 **MIT License**，可自由使用、修改、分发与商用，请保留版权与许可声明。
+
+Copyright (c) 2026 Tanay Gera · 详见 [LICENSE](./LICENSE)
 
 ---
 
