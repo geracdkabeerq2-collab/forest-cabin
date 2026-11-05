@@ -78,7 +78,7 @@
 
   /* ---- 「更多」功能面板 ---- */
   #more { position: fixed; right: 2.6vh; top: calc(2.6vh + 44px); z-index: 11; display: none;
-          grid-template-columns: repeat(2, minmax(118px, 1fr)); gap: 8px;
+          grid-template-columns: repeat(3, minmax(96px, 1fr)); gap: 8px;
           padding: 12px; border-radius: 16px; background: rgba(22,19,15,.95);
           border: 1px solid rgba(233,222,203,.16); box-shadow: 0 18px 50px rgba(0,0,0,.5);
           backdrop-filter: blur(9px); transition: opacity 1s ease; }
@@ -172,6 +172,34 @@
   .fc-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
   .fc-hint { margin-top: 11px; font-size: 10.5px; color: #8d8471; text-align: center; }
 
+  /* ---- 通用面板容器(v3 新面板复用) ---- */
+  .panel-box { position: fixed; left: 50%; top: 50%; transform: translate(-50%,-46%); z-index: 12;
+               width: min(430px, 92vw); max-height: 82vh; overflow: auto; padding: 20px;
+               border-radius: 18px; background: rgba(22,19,15,.96);
+               border: 1px solid rgba(233,222,203,.16); box-shadow: 0 24px 70px rgba(0,0,0,.6);
+               opacity: 0; pointer-events: none;
+               transition: opacity .28s ease, transform .28s ease; }
+  .panel-box.show { opacity: 1; pointer-events: auto; transform: translate(-50%,-50%); }
+  /* 成就墙 */
+  .ach-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+  .ach-item { padding: 11px 8px; border-radius: 11px; text-align: center;
+              border: 1px solid rgba(233,222,203,.12); background: rgba(255,255,255,.02);
+              color: #6f6858; transition: all .25s; }
+  .ach-item.on { border-color: rgba(232,183,106,.6); color: #f0e6d2;
+                 background: rgba(232,183,106,.10); box-shadow: 0 0 14px rgba(232,183,106,.16); }
+  .ach-ic { font-size: 19px; line-height: 1.2; }
+  .ach-nm { font-size: 11px; margin-top: 4px; }
+  .ach-ds { font-size: 9.5px; margin-top: 3px; opacity: .8; line-height: 1.35; }
+  /* 许愿 / 胶囊 输入区 */
+  .v3-input { width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 10px;
+              background: rgba(255,255,255,.04); border: 1px solid rgba(233,222,203,.16);
+              color: #e9decb; font-family: inherit; font-size: 12.5px; resize: none; }
+  .v3-input:focus { outline: none; border-color: rgba(232,183,106,.55); }
+  .v3-row { display: flex; gap: 8px; margin-top: 10px; }
+  .v3-row .btn { flex: 1; text-align: center; }
+  .v3-list { margin-top: 12px; font-size: 11.5px; color: #b0a48e; line-height: 1.7; }
+  .v3-list li { list-style: none; padding: 5px 0; border-bottom: 1px solid rgba(233,222,203,.07); }
+
   /* ---- 沉浸模式:隐藏全部界面 ---- */
   body.immersive #ui, body.immersive #more, body.immersive #status, body.immersive #bright,
   body.immersive #gh, body.immersive #hud, body.immersive #caption, body.immersive #toast,
@@ -186,6 +214,7 @@
         backdrop-filter: blur(6px); transition: opacity 1s ease, color .3s, border-color .3s; }
   #gh:hover { color: #f0e6d2; border-color: rgba(233,222,203,.34); }
   #gh svg { width: 14px; height: 14px; fill: currentColor; flex: 0 0 auto; }
+  #gh em { font-style: normal; color: #e8b76a; font-size: 10.5px; letter-spacing: 0; }
   body.idle #gh { opacity: 0; }
   @media (max-width: 940px){
     #gh { left: auto; right: 1.8vh; bottom: auto; top: 1.8vh; padding: 5px 10px; font-size: 10px; }
@@ -328,12 +357,17 @@
   <button class="btn" id="btnPreset">场景</button>
   <button class="btn" id="btnImmersive">沉浸</button>
   <button class="btn" id="btnFocus">专注</button>
+  <button class="btn" id="btnAch">成就</button>
+  <button class="btn" id="btnWish">许愿</button>
+  <button class="btn" id="btnCapsule">胶囊</button>
+  <button class="btn" id="btnCheckin">签到 · 0天</button>
 </div>
 <div id="status"><span class="dot"></span><span id="statusText">秋 · 晴 · 60%</span></div>
 <a id="gh" href="https://github.com/geracdkabeerq2-collab/forest-cabin" target="_blank" rel="noopener"
    title="在 GitHub 上 Star 这个项目">
   <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
   <span>Star on GitHub</span>
+  <em id="ghStar"></em>
 </a>
 <div id="flash"></div>
 <div id="presets">
@@ -358,6 +392,23 @@
     <button class="btn" id="fcReset">重置</button>
   </div>
   <div class="fc-hint">建议配合「沉浸」模式一起用</div>
+</div>
+<div id="ach" class="panel-box">
+  <div class="ps-head">成就墙<span id="achCount">0 / 9</span><button class="panel-x" data-close="ach" aria-label="关闭成就墙">×</button></div>
+  <div class="ach-grid" id="achGrid"></div>
+  <ul class="v3-list" id="eggProg"></ul>
+</div>
+<div id="wish" class="panel-box">
+  <div class="ps-head">放一盏孔明灯<span>写下心愿，让它升空</span><button class="panel-x" data-close="wish" aria-label="关闭许愿">×</button></div>
+  <textarea class="v3-input" id="wishText" rows="2" maxlength="30" placeholder="写一句心愿（最多 30 字）"></textarea>
+  <div class="v3-row">
+    <button class="btn" id="wishGo">放灯</button>
+  </div>
+  <ul class="v3-list" id="wishList"></ul>
+</div>
+<div id="capsule" class="panel-box">
+  <div class="ps-head">时间胶囊<span>埋一句话，等它到期</span><button class="panel-x" data-close="capsule" aria-label="关闭时间胶囊">×</button></div>
+  <div id="capBody"></div>
 </div>
 <div id="toast"></div>
 <div id="help">
@@ -1325,6 +1376,8 @@ const smokeAnchor = new THREE.Vector3(1.9, 5.15, -1.0);
     makeInteractive(cHit, '烛台', ()=>{
       cObj.lit = !cObj.lit;
       toast(cObj.lit ? '烛火点亮' : '烛火熄灭');
+      // 点灯或熄灯都算与灯互动,避免"初始已亮 → 首次点击是熄灭"拿不到成就
+      if (window.__v3) window.__v3.unlock('firstLight');
     });
   }
   const mk = (x,z,i)=>{ const l = new THREE.PointLight(0xffb066, i, 5.5, 2); l.position.set(x,1.75,z); cabin.add(l); return l; };
@@ -1937,6 +1990,7 @@ function applyLook(skipCaptions){
   halloweenGroup.visible = state.theme==='halloween';
   christmasGroup.visible = state.theme==='christmas';
   for(const k in FESTIVALS) FESTIVALS[k].visible = (T.fest === k);
+  if (window.__v3) window.__v3.visit('theme', state.theme);
   birdMode = state.theme==='halloween' ? 'bat' : 'bird';
   applyWindowGlow(T.window || S.window);
   document.getElementById('titleSub').textContent = 'FOREST CABIN · ' + (T.label!=='无'? T.label : S.label);
@@ -2070,6 +2124,7 @@ function setDwelling(name){
   }, 340);
   const b = document.getElementById('btnDwelling');
   if (b) b.textContent = '居所 · ' + D.label;
+  if (window.__v3) window.__v3.visit('dwelling', name);
   if (typeof updateStatus === 'function') updateStatus();
   if (typeof syncUrl === 'function') syncUrl();
 }
@@ -2492,6 +2547,7 @@ function buildAmbUI(){
       if (inp.tagName !== 'INPUT') return;
       const id = inp.dataset.id, v = (+inp.value) / 100;
       if (window.__audioSetVol) window.__audioSetVol(id, v);
+      if (window.__v3) window.__v3.visit('track', id);
       const lab = ambRowsEl.querySelector(`[data-val="${id}"]`);
       if (lab) lab.textContent = Math.round(v * 100) + '%';
     });
@@ -2662,6 +2718,7 @@ function focusFinish(){
   if (b) b.textContent = '开始';
   focusRender(FOCUS.total);
   if (window.__audioChime) window.__audioChime();
+  if (window.__v3) window.__v3.unlock('pomo');
   toast('专注完成 · 起来走走');
 }
 function toggleFocus(v){
@@ -3129,6 +3186,356 @@ tryStartMusic();
 window.__musicInfo = () => audio ? { state: audio.ctx.state, vol: +audio.master.gain.value.toFixed(2) } : null;
 
 /* ============================================================
+   14.5 v3.0 社交化模块:签到 / 成就 / 星标 / 孔明灯 / 彩蛋 / 胶囊
+============================================================ */
+const V3 = (()=>{
+  const K = 'cabin_';
+  const load = (k, d)=>{ try{ const v = localStorage.getItem(K+k); return v ? JSON.parse(v) : d; }catch(_){ return d; } };
+  const save = (k, v)=>{ try{ localStorage.setItem(K+k, JSON.stringify(v)); }catch(_){} };
+  const dayKey = (d)=>{ const x = d || new Date(); return x.getFullYear()*10000 + (x.getMonth()+1)*100 + x.getDate(); };
+  const esc = (s)=> String(s).replace(/[<>&]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
+
+  /* —— 1. 签到 —— */
+  const streak = load('streak', { last:0, days:0 });
+  const today = dayKey();
+  let justChecked = false;
+  if (streak.last !== today){
+    const y = new Date(); y.setDate(y.getDate() - 1);
+    streak.days = (streak.last === dayKey(y)) ? (streak.days + 1) : 1;
+    streak.last = today;
+    save('streak', streak);
+    justChecked = true;
+  }
+  // 连续天数 → 火势倍率(1.00 ~ 1.40)
+  const streakMul = ()=> 1 + Math.min(4, Math.floor(streak.days / 2)) * 0.10;
+
+  /* —— 2. 成就 —— */
+  const ACH = [
+    { id:'firstLight', ic:'🕯', nm:'初次点灯', ds:'触碰任意一支蜡烛' },
+    { id:'fourHomes',  ic:'🏕', nm:'四海为家', ds:'体验四种居所' },
+    { id:'sixFest',    ic:'🏮', nm:'六节气',   ds:'看遍六个传统节日' },
+    { id:'allTracks',  ic:'🎚', nm:'听风者',   ds:'五轨音景都调过' },
+    { id:'storm',      ic:'⛈', nm:'雷雨夜',   ds:'雷雨中停留 3 分钟' },
+    { id:'week',       ic:'🔥', nm:'七日之约', ds:'连续签到 7 天' },
+    { id:'wish',       ic:'🏮', nm:'心愿升空', ds:'放出一盏孔明灯' },
+    { id:'egg',        ic:'🥚', nm:'拾荒者',   ds:'找到任意季节彩蛋' },
+    { id:'pomo',       ic:'⏱', nm:'专注一小时', ds:'完成一次专注' },
+  ];
+  const ach = load('ach', {});
+  const seen = load('seen', { dwelling:{}, theme:{}, track:{} });
+  const achGridEl = document.getElementById('achGrid');
+  const achCountEl = document.getElementById('achCount');
+
+  function renderAch(){
+    if (!achGridEl) return;
+    achGridEl.innerHTML = ACH.map(a=>{
+      const on = !!ach[a.id];
+      return `<div class="ach-item${on?' on':''}" title="${esc(a.ds)}">
+        <div class="ach-ic">${on ? a.ic : '·'}</div>
+        <div class="ach-nm">${esc(a.nm)}</div>
+        <div class="ach-ds">${on ? '已解锁' : esc(a.ds)}</div>
+      </div>`;
+    }).join('');
+    const n = Object.keys(ach).length;
+    if (achCountEl) achCountEl.textContent = n + ' / ' + ACH.length;
+    // 季节彩蛋进度
+    const ep = document.getElementById('eggProg');
+    if (ep && typeof eggState !== 'undefined'){
+      const en = Object.keys(eggState).length;
+      ep.innerHTML = `<li>季节彩蛋 ${en} / 4 ${en >= 4 ? '· 已集齐，门口走马灯已亮' : '· 在树林里找发光的小东西'}</li>`;
+    }
+  }
+  function unlock(id){
+    if (ach[id]) return;
+    const a = ACH.find(x=>x.id===id);
+    if (!a) return;
+    ach[id] = Date.now();
+    save('ach', ach);
+    renderAch();
+    toast('成就解锁 · ' + a.nm);
+  }
+  function visit(type, key){
+    if (!seen[type]) seen[type] = {};
+    if (seen[type][key]) return;
+    seen[type][key] = 1;
+    save('seen', seen);
+    checkAch();
+  }
+  function checkAch(){
+    if (Object.keys(seen.dwelling || {}).length >= 4) unlock('fourHomes');
+    const F = ['springFest','lanternFest','qingming','dragonBoat','qixi','midAutumn'];
+    if (F.every(f => seen.theme && seen.theme[f])) unlock('sixFest');
+    if (Object.keys(seen.track || {}).length >= 5) unlock('allTracks');
+    if (streak.days >= 7) unlock('week');
+    if (Object.keys(eggState).length >= 1) unlock('egg');
+  }
+
+  /* —— 3. GitHub 星标(缓存 1 小时,失败静默) —— */
+  const STAR_TTL = 3600 * 1000;
+  function renderStars(n){
+    const el = document.getElementById('ghStar');
+    if (el) el.textContent = (typeof n === 'number' && n > 0) ? '★ ' + n : '';
+  }
+  function loadStars(){
+    const c = load('stars', null);
+    if (c && Date.now() - c.t < STAR_TTL){ renderStars(c.n); return; }
+    fetch('https://api.github.com/repos/geracdkabeerq2-collab/forest-cabin', { cache:'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d && typeof d.stargazers_count === 'number'){ save('stars', { n:d.stargazers_count, t:Date.now() }); renderStars(d.stargazers_count); } })
+      .catch(()=>{ if (c) renderStars(c.n); });
+  }
+
+  /* —— 4. 孔明灯 —— */
+  const skyLanterns = [];
+  let wishes = load('wishes', []);
+  const wishListEl = document.getElementById('wishList');
+  function renderWishes(){
+    if (!wishListEl) return;
+    wishListEl.innerHTML = wishes.length
+      ? wishes.map(w=>`<li>「${esc(w.text)}」<span style="float:right;opacity:.6">${new Date(w.at).toLocaleDateString('zh-CN')}</span></li>`).join('')
+      : '<li style="opacity:.6">还没有放过灯</li>';
+  }
+  function releaseLantern(text){
+    const g = new THREE.Group();
+    const paperMat = new THREE.MeshStandardMaterial({ color:0xffd9a0, emissive:0xffb066,
+      emissiveIntensity:1.5, transparent:true, opacity:.94, roughness:.9, side:THREE.DoubleSide });
+    const body = new THREE.Mesh(new THREE.ConeGeometry(.34, .62, 8, 1, true), paperMat);
+    body.position.y = .31; g.add(body);
+    const bottom = new THREE.Mesh(new THREE.CircleGeometry(.22, 12),
+      new THREE.MeshBasicMaterial({ color:0xff9a3c, transparent:true, opacity:.9 }));
+    bottom.rotation.x = -Math.PI/2; bottom.position.y = .02; g.add(bottom);
+    const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map:fireGlowTex, color:0xffc46a,
+      transparent:true, opacity:.85, blending:THREE.AdditiveBlending, depthWrite:false, fog:false }));
+    glow.scale.set(1.5,1.5,1); g.add(glow);
+    const pl = new THREE.PointLight(0xffb066, 1.1, 9, 2); g.add(pl);
+    g.position.set(rand(-1.6,1.6), .7, CD/2 + rand(1.5,3));
+    scene.add(g);
+    skyLanterns.push({ g, life:0, sp: rand(.5,.75), sway: rand(0,6.28) });
+    if (text && text.trim()){
+      wishes.unshift({ text: text.trim().slice(0,30), at: Date.now() });
+      wishes = wishes.slice(0,3);
+      save('wishes', wishes);
+      renderWishes();
+    }
+    unlock('wish');
+  }
+
+  /* —— 5. 季节彩蛋 —— */
+  const EGGS = {
+    spring: { nm:'笋尖',   c:0x9ad07a, pos:[-6.5, 6.2] },
+    summer: { nm:'萤火瓶', c:0xffe27a, pos:[ 6.8, -5.8] },
+    autumn: { nm:'松果',   c:0xc08a4a, pos:[-6.8, -5.4] },
+    winter: { nm:'冰晶',   c:0xa8dcf0, pos:[ 6.4, 6.6] },
+  };
+  const eggState = load('eggs', {});
+  const eggObjs = [];
+  function buildEggs(){
+    for(const k in EGGS){
+      const e = EGGS[k];
+      const g = new THREE.Group();
+      const m = new THREE.Mesh(new THREE.OctahedronGeometry(.22, 0),
+        new THREE.MeshStandardMaterial({ color:e.c, emissive:e.c, emissiveIntensity:1.2, roughness:.5 }));
+      g.add(m);
+      const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map:fireGlowTex, color:e.c,
+        transparent:true, opacity:.55, blending:THREE.AdditiveBlending, depthWrite:false, fog:false }));
+      halo.scale.set(1.1,1.1,1); g.add(halo);
+      g.position.set(e.pos[0], terrainH(e.pos[0], e.pos[1]) + .55, e.pos[1]);
+      scene.add(g);
+      const hit = hitSphere(0, 0, 0, .5); g.add(hit);
+      makeInteractive(hit, '彩蛋·' + e.nm, ()=>{
+        if (eggState[k]){ toast('已收集 · ' + e.nm); return; }
+        eggState[k] = Date.now(); save('eggs', eggState);
+        g.visible = false;
+        unlock('egg');
+        const n = Object.keys(eggState).length;
+        toast(`找到「${e.nm}」 ${n}/4`);
+        if (n >= 4){ carouselLamp.visible = true; toast('四季集齐 · 门口亮起了走马灯'); }
+        renderAch();
+      });
+      eggObjs.push({ g, mesh:m, key:k, base: g.position.y });
+    }
+  }
+
+  /* —— 6. 时间胶囊 —— */
+  let capsule = load('capsule', null);
+  const capBodyEl = document.getElementById('capBody');
+  const CAP_DAYS = 30 * 86400 * 1000;
+  function capsuleDaysLeft(){
+    if (!capsule) return 0;
+    return Math.max(0, Math.ceil((capsule.unlockAt - Date.now()) / 86400000));
+  }
+  function renderCapsule(){
+    if (!capBodyEl) return;
+    if (capsule){
+      const left = capsuleDaysLeft();
+      capBodyEl.innerHTML = left > 0
+        ? `<div class="v3-list"><li>已埋下：'${esc(capsule.text)}'</li>
+           <li>还需 <b style="color:#e8b76a">${left}</b> 天解锁</li>
+           <li style="opacity:.6">到期后，树下的木牌会发光</li></div>`
+        : `<div class="v3-list"><li>已到期：'${esc(capsule.text)}'</li>
+           <li><button class="btn" id="capDone" style="margin-top:6px">取回并清除</button></li></div>`;
+      const done = document.getElementById('capDone');
+      if (done) done.onclick = ()=>{ capsule = null; save('capsule', null); capsuleMarker.visible = false; renderCapsule(); toast('胶囊已取回'); };
+    } else {
+      capBodyEl.innerHTML = `
+        <textarea class="v3-input" id="capText" rows="2" maxlength="40" placeholder="写一句留给未来的话"></textarea>
+        <div class="v3-row">
+          <button class="btn" data-days="7">7 天后</button>
+          <button class="btn" data-days="30">30 天后</button>
+          <button class="btn" data-days="100">100 天后</button>
+        </div>`;
+      capBodyEl.querySelectorAll('[data-days]').forEach(b=>{
+        b.onclick = ()=>{
+          const txt = (document.getElementById('capText').value || '').trim();
+          if (!txt){ toast('先写一句话'); return; }
+          const d = +b.dataset.days;
+          capsule = { text: txt.slice(0,40), at: Date.now(), unlockAt: Date.now() + d*86400000 };
+          save('capsule', capsule);
+          capsuleMarker.visible = true;
+          renderCapsule();
+          toast(`已埋下 · ${d} 天后可开启`);
+        };
+      });
+    }
+  }
+  // 树下的胶囊木牌
+  const capsuleMarker = new THREE.Group();
+  {
+    const mound = new THREE.Mesh(new THREE.SphereGeometry(.42, 10, 7),
+      new THREE.MeshStandardMaterial({ color:0x4a3a2a, roughness:1 }));
+    mound.scale.set(1, .45, 1); mound.position.y = .12; capsuleMarker.add(mound);
+    const plank = new THREE.Mesh(new THREE.BoxGeometry(.42, .5, .05), matWoodWarm);
+    plank.position.y = .55; capsuleMarker.add(plank);
+    const mark = new THREE.Mesh(new THREE.CircleGeometry(.11, 10),
+      new THREE.MeshStandardMaterial({ color:0xffd08a, emissive:0xffb066, emissiveIntensity:1.4 }));
+    mark.position.set(0, .6, .031); capsuleMarker.add(mark);
+    const bx = 4.6, bz = 7.4;
+    capsuleMarker.position.set(bx, terrainH(bx, bz), bz);
+    capsuleMarker.visible = false;
+    scene.add(capsuleMarker);
+    const hit = hitSphere(0, .5, 0, .55); capsuleMarker.add(hit);
+    makeInteractive(hit, '时间胶囊', ()=>{
+      if (!capsule){ toast('还没有埋下胶囊'); return; }
+      const left = capsuleDaysLeft();
+      if (left > 0){ toast(`还要等 ${left} 天`); return; }
+      toast('「' + capsule.text + '」');
+    });
+  }
+
+  /* —— 集齐四季后的走马灯(门廊上方) —— */
+  const carouselLamp = new THREE.Group();
+  {
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(.26,.26,.42,6),
+      new THREE.MeshStandardMaterial({ color:0xffd9a0, emissive:0xffb066,
+        emissiveIntensity:1.5, transparent:true, opacity:.92, side:THREE.DoubleSide }));
+    carouselLamp.add(body);
+    const top = new THREE.Mesh(new THREE.ConeGeometry(.31,.18,6), matRedL);
+    top.position.y = .3; carouselLamp.add(top);
+    const tail = new THREE.Mesh(new THREE.CylinderGeometry(.014,.014,.26,4), matRedL);
+    tail.position.y = -.34; carouselLamp.add(tail);
+    const cl = new THREE.PointLight(0xffb066, .85, 5.5, 2); carouselLamp.add(cl);
+    carouselLamp.position.set(0, 3.15, CD/2 + 1.5);
+    carouselLamp.visible = Object.keys(eggState).length >= 4;
+    scene.add(carouselLamp);
+  }
+
+  /* —— 循环:孔明灯上升 / 彩蛋浮动 / 雷雨计时 —— */
+  let stormT = 0, eggT = 0;
+  function tick(dt, t){
+    // 孔明灯
+    for(let i=skyLanterns.length-1;i>=0;i--){
+      const L = skyLanterns[i];
+      L.life += dt;
+      L.g.position.y += L.sp * dt * (1 + L.life*0.04);
+      L.g.position.x += Math.sin(L.life * 1.1 + L.sway) * .22 * dt;
+      L.g.rotation.z = Math.sin(L.life * .8 + L.sway) * .05;
+      const s = 1 - Math.max(0, (L.g.position.y - 18) / 10);
+      L.g.scale.setScalar(Math.max(.15, s));
+      if (L.g.position.y > 28){ scene.remove(L.g); skyLanterns.splice(i,1); }
+    }
+    // 彩蛋:旋转 + 呼吸
+    eggT += dt;
+    for(const e of eggObjs){
+      if (!e.g.visible) continue;
+      e.mesh.rotation.y = eggT * 1.2;
+      e.g.position.y = e.base + Math.sin(eggT * 1.6 + e.base) * .08;
+    }
+    // 胶囊到期发光
+    if (capsule && capsuleMarker.visible){
+      const left = capsuleDaysLeft();
+      capsuleMarker.children[2].material.emissiveIntensity = left > 0 ? 1.4 : (1.6 + Math.sin(t*3)*1.2);
+    }
+    // 走马灯旋转
+    if (carouselLamp.visible) carouselLamp.rotation.y += dt * .9;
+    // 雷雨停留成就(累计 3 分钟)
+    if (curWeather === 'storm' && !ach.storm){
+      stormT += dt;
+      if (stormT >= 180) unlock('storm');
+    }
+  }
+
+  /* —— 面板绑定 —— */
+  function toggle(id, on){
+    const el = document.getElementById(id);
+    if (!el) return;
+    const show = (on === undefined) ? !el.classList.contains('show') : on;
+    el.classList.toggle('show', show);
+    if (show) toggleMore(false);
+    return show;
+  }
+  const btnAch = document.getElementById('btnAch');
+  if (btnAch) btnAch.onclick = ()=>{ if (toggle('ach')) renderAch(); };
+  const btnWish = document.getElementById('btnWish');
+  if (btnWish) btnWish.onclick = ()=>{ if (toggle('wish')) renderWishes(); };
+  const btnCap = document.getElementById('btnCapsule');
+  if (btnCap) btnCap.onclick = ()=>{ if (toggle('capsule')) renderCapsule(); };
+  const btnCheck = document.getElementById('btnCheckin');
+  if (btnCheck) btnCheck.onclick = ()=>{
+    toast(`连续签到 ${streak.days} 天 · 火势 +${Math.round((streakMul()-1)*100)}%`);
+  };
+  const wishGo = document.getElementById('wishGo');
+  if (wishGo) wishGo.onclick = ()=>{
+    const ta = document.getElementById('wishText');
+    const txt = ta ? ta.value.trim() : '';
+    if (!txt){ toast('先写一句心愿'); return; }
+    releaseLantern(txt);
+    if (ta) ta.value = '';
+    setTimeout(()=>toggle('wish', false), 500);
+  };
+  // 统一关闭 ×
+  document.querySelectorAll('#ach .panel-x, #wish .panel-x, #capsule .panel-x').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const p = document.getElementById(btn.dataset.close);
+      if (p) p.classList.remove('show');
+    });
+  });
+  // 点遮罩关闭
+  ['ach','wish','capsule'].forEach(id=>{
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('click', (e)=>{ if (e.target === el) el.classList.remove('show'); });
+  });
+
+  /* —— 初始化 —— */
+  buildEggs();
+  renderAch();
+  renderWishes();
+  renderCapsule();
+  loadStars();
+  if (capsule) capsuleMarker.visible = true;
+  // 按钮显示签到天数
+  if (btnCheck) btnCheck.textContent = '签到 · ' + streak.days + '天';
+  checkAch();
+  setTimeout(()=>{
+    if (justChecked) toast(`连续签到 ${streak.days} 天 · 火更旺了`);
+  }, 3200);
+
+  return { unlock, visit, tick, streak, streakMul, ach, eggState, wishes,
+           releaseLantern, togglePanel: toggle, starsReady:true };
+})();
+window.__v3 = V3;
+
+/* ============================================================
    15. 动画循环
 ============================================================ */
 const clock = new THREE.Clock();
@@ -3189,16 +3596,20 @@ renderer.setAnimationLoop(()=>{
     flashEl.style.opacity = '0';
   }
 
-  // 烛火 / 篝火摇曳
+  // 烛火 / 篝火摇曳(签到连续天数提升火势)
+  const sMul = (window.__v3 && window.__v3.streakMul) ? window.__v3.streakMul() : 1;
   for(const c of candleLights){
     const f = .84 + .16*Math.sin(t*6.7 + c.ph) + .07*Math.sin(t*12.3 + c.ph*2.1);
     const on = (c.lit === false) ? 0 : 1;
-    const k = on * (c.mul || 1);
+    const k = on * (c.mul || 1) * sMul;
     c.light.intensity = c.baseI * f * k;
     c.flame.material.opacity = .9 * f * on;
     const sc = Math.sqrt(k > 0 ? k : 1);
     c.flame.scale.set(c.w * sc, c.h * f * sc, 1);
   }
+
+  // v3 模块循环(孔明灯 / 彩蛋 / 胶囊 / 雷雨计时)
+  if (window.__v3 && window.__v3.tick) window.__v3.tick(dt, t);
 
   // 炊烟
   for(const s of smokeSprites){
