@@ -3,7 +3,7 @@
 > 一个跑在浏览器里的 3D 森林小屋。四季轮转、天气变化、节日主题、程序化配乐与字幕叙事。
 > 纯静态、零构建、零外部依赖（three.js 已本地化），克隆下来起个静态服务器就能离线运行。
 
-![四季 · 天气 · 节日主题](docs/preview.svg)
+**在线体验**：https://geracdkabeerq2-collab.github.io/forest-cabin/
 
 ---
 
