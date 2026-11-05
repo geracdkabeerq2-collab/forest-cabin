@@ -100,6 +100,16 @@
   .ps-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px;
              font-size: 13px; letter-spacing: .24em; color: #f0e6d2; }
   .ps-head span { font-size: 10.5px; letter-spacing: .06em; color: #8d8471; }
+  /* 二级面板统一关闭按钮 */
+  .panel-x { margin-left: auto; align-self: center; flex: 0 0 auto;
+             width: 26px; height: 26px; padding: 0; border-radius: 50%;
+             display: flex; align-items: center; justify-content: center;
+             border: 1px solid rgba(233,222,203,.16); background: rgba(255,255,255,.04);
+             color: #cbbc9f; font-size: 15px; line-height: 1; font-family: inherit;
+             cursor: pointer; transition: color .2s, border-color .2s, background .2s; }
+  .panel-x:hover { color: #f0e6d2; border-color: rgba(232,183,106,.6);
+                   background: rgba(232,183,106,.14); }
+  .panel-x:focus-visible { outline: 2px solid rgba(232,183,106,.7); outline-offset: 1px; }
   .ps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px,1fr)); gap: 10px; }
   .ps-card { border-radius: 12px; overflow: hidden; cursor: pointer; background: #1a1713;
              border: 1px solid rgba(233,222,203,.14);
@@ -327,20 +337,20 @@
 </a>
 <div id="flash"></div>
 <div id="presets">
-  <div class="ps-head">场景预设<span>点击卡片直接切换</span></div>
+  <div class="ps-head">场景预设<span>点击卡片直接切换</span><button class="panel-x" data-close="presets" aria-label="关闭场景预设">×</button></div>
   <div class="ps-grid" id="psGrid"></div>
 </div>
 <div id="amb">
-  <div class="ps-head">音景混音<span>拖动调整各轨音量</span></div>
+  <div class="ps-head">音景混音<span>拖动调整各轨音量</span><button class="panel-x" data-close="amb" aria-label="关闭音景混音">×</button></div>
   <div id="ambRows"></div>
 </div>
 <div id="photo">
-  <div class="ps-head">照片模式<span>2× 超采样 · 自动加边框</span></div>
+  <div class="ps-head">照片模式<span>2× 超采样 · 自动加边框</span><button class="panel-x" data-close="photo" aria-label="关闭照片模式">×</button></div>
   <div class="ph-filters" id="phFilters"></div>
   <button class="btn ph-shoot" id="phShoot">拍摄并下载</button>
 </div>
 <div id="focus">
-  <div class="ps-head">专注时刻<span>结束后有铃声</span></div>
+  <div class="ps-head">专注时刻<span>结束后有铃声</span><button class="panel-x" data-close="focus" aria-label="关闭专注时刻">×</button></div>
   <div class="fc-time" id="fcTime">25:00</div>
   <div class="fc-bar"><i id="fcFill"></i></div>
   <div class="fc-btns">
@@ -2670,6 +2680,18 @@ const fcStartEl = document.getElementById('fcStart');
 if (fcStartEl) fcStartEl.onclick = ()=>{ FOCUS.running ? focusPause() : focusStart(); };
 const fcResetEl = document.getElementById('fcReset');
 if (fcResetEl) fcResetEl.onclick = focusReset;
+
+/* —— 二级面板统一关闭按钮(×):只关自己,不影响遮罩与其它层级 —— */
+document.querySelectorAll('.panel-x').forEach(btn=>{
+  btn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    const id = btn.dataset.close;
+    const panel = id && document.getElementById(id);
+    if (!panel) return;
+    panel.classList.remove('show');
+    if (typeof wakeHud === 'function') wakeHud();
+  });
+});
 
 addEventListener('keydown', (e)=>{
   if (e.metaKey || e.ctrlKey || e.altKey) return;
