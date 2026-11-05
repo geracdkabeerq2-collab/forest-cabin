@@ -77,7 +77,7 @@
   body.idle #hud, body.idle #ui { opacity: 0; }
 
   /* ---- 「更多」功能面板 ---- */
-  #more { position: fixed; right: 2.6vh; top: 7.2vh; z-index: 11; display: none;
+  #more { position: fixed; right: 2.6vh; top: calc(2.6vh + 44px); z-index: 11; display: none;
           grid-template-columns: repeat(2, minmax(118px, 1fr)); gap: 8px;
           padding: 12px; border-radius: 16px; background: rgba(22,19,15,.95);
           border: 1px solid rgba(233,222,203,.16); box-shadow: 0 18px 50px rgba(0,0,0,.5);
@@ -2236,7 +2236,11 @@ function toast(msg){
 function updateStatus(){
   const el = document.getElementById('statusText');
   if (!el) return;
-  el.textContent = `${SEASONS[state.season].label} · ${WEATHERS[curWeather].label} · ${DWELLING_LABEL[curDwelling]} · ${brightLevel*10}%`;
+  const tName = THEME_NAMES[state.theme];
+  const parts = [SEASONS[state.season].label, WEATHERS[curWeather].label];
+  if (tName && tName !== '无') parts.push(tName);
+  parts.push(DWELLING_LABEL[curDwelling], brightLevel*10 + '%');
+  el.textContent = parts.join(' · ');
 }
 function syncUrl(){
   try{
@@ -3073,12 +3077,18 @@ function musicFade(v, tc=.5){
 function tryStartMusic(){
   if (!musicOn) return;
   if (!audio) audio = buildAudio();
-  if (audio.ctx.state === 'suspended') audio.ctx.resume();
-  if (audio.ctx.state === 'running' && !musicStarted){
-    musicStarted = true;
-    musicFade(.85, 1.2);
+  const applyStart = ()=>{
+    if (audio.ctx.state === 'running' && !musicStarted){
+      musicStarted = true;
+      musicFade(.85, 1.2);
+    }
+  };
+  // resume() 是异步的,必须等它兑现后再判断 state,否则首次手势会静音
+  if (audio.ctx.state === 'suspended'){
+    audio.ctx.resume().then(applyStart, ()=>{});
+  } else {
+    applyStart();
   }
-  // 音频上下文可能是首次手势才创建,补一次音景初始化
   if (audio && audio.setAmbience){
     audio.setAmbience(curWeather, curDwelling, state.season);
   }
