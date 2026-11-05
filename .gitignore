@@ -1,0 +1,13 @@
+# 本地工作目录(WorkBuddy 记忆/验证产物)
+.workbuddy/
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# 日志与临时文件
+*.log
+*.tmp

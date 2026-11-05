@@ -1,0 +1,2185 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="森林小屋 · 三维沉浸式森林夜景,可切换四季与节日主题,亮度能量条随心调">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8C%B2%3C/text%3E%3C/svg%3E">
+<title>森林小屋 · Forest Cabin</title>
+<style>
+  html, body { margin: 0; padding: 0; overflow: hidden; background: #0d0f12; height: 100%; }
+  body { font-family: Georgia, "Times New Roman", "Songti SC", "SimSun", serif; }
+  canvas#scene { display: block; width: 100vw; height: 100vh; cursor: grab; touch-action: none; }
+  canvas#scene:active { cursor: grabbing; }
+
+  /* ---- 电影画幅黑边 ---- */
+  .bar { position: fixed; left: 0; right: 0; height: 0; background: #000; z-index: 6;
+         pointer-events: none; transition: height 1.2s cubic-bezier(.6,0,.3,1); }
+  #barTop { top: 0; } #barBottom { bottom: 0; }
+  body.cine #barTop, body.cine #barBottom { height: 5.6vh; }
+
+  /* ---- 开场标题 ---- */
+  #title { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center;
+           justify-content: center; z-index: 7; pointer-events: none;
+           opacity: 0; transition: opacity 1.8s ease; }
+  #title.show { opacity: 1; }
+  #title h1 { margin: 0; font-weight: 500; color: #f3e9d6; letter-spacing: .42em; text-indent: .42em;
+              font-size: clamp(34px, 6vw, 74px);
+              text-shadow: 0 2px 40px rgba(0,0,0,.65), 0 0 90px rgba(255,190,120,.18); }
+  #title p { margin: 18px 0 0; color: #cbbc9f; letter-spacing: .5em; text-indent: .5em;
+             font-size: clamp(11px, 1.4vw, 15px); opacity: .85; }
+
+  /* ---- 文字滑条(字幕式轮播) ---- */
+  #caption { position: fixed; left: 50%; transform: translateX(-50%); bottom: 10vh;
+             z-index: 7; text-align: center; pointer-events: none;
+             opacity: 0; transition: opacity 1.2s ease; max-width: 86vw; }
+  #caption.show { opacity: 1; }
+  .cap-line { display: inline-block; color: #f0e6d2; font-size: clamp(15px, 2vw, 22px);
+              letter-spacing: .34em; text-indent: .34em; white-space: nowrap;
+              text-shadow: 0 2px 18px rgba(0,0,0,.75), 0 0 46px rgba(255,190,120,.15);
+              animation: capin .55s ease both; }
+  @keyframes capin { from { opacity: 0; transform: translateX(30px); }
+                     to   { opacity: 1; transform: translateX(0); } }
+  .cap-line::before, .cap-line::after { content: ""; display: inline-block; vertical-align: middle;
+              width: 3.2em; height: 1px; background: rgba(233,222,203,.35); margin: 0 1.4em; }
+  .cap-dots { display: flex; gap: 10px; justify-content: center; margin-top: 14px;
+              pointer-events: auto; }
+  .cap-dot { width: 26px; height: 14px; border-radius: 2px; background: transparent;
+             border: 0; padding: 0; cursor: pointer; overflow: hidden; position: relative; }
+  .cap-dot::after { content: ""; position: absolute; left: 0; right: 0; top: 50%;
+             transform: translateY(-50%); height: 3px; border-radius: 2px;
+             background: rgba(233,222,203,.22); transition: background .3s; }
+  .cap-dot:hover::after { background: rgba(233,222,203,.4); }
+  .cap-dot.active::after { background: rgba(233,222,203,.32); }
+  .cap-dot .fill { position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+                   height: 3px; border-radius: 2px; width: 0%;
+                   background: #d8b98a; z-index: 1; }
+  @keyframes capfill { from { width: 0%; } to { width: 100%; } }
+  @media (max-width: 640px){ .cap-line::before, .cap-line::after { width: 1.6em; margin: 0 .7em; } }
+
+  /* ---- HUD ---- */
+  #hud { position: fixed; bottom: 3.2vh; left: 50%; transform: translateX(-50%); z-index: 8;
+         color: #e9decb; font-size: 13px; letter-spacing: .28em; text-indent: .28em;
+         background: rgba(18,16,12,.42); border: 1px solid rgba(233,222,203,.14);
+         padding: 9px 18px; border-radius: 999px; backdrop-filter: blur(6px);
+         transition: opacity 1s ease; white-space: nowrap; }
+  #ui { position: fixed; top: 2.6vh; right: 2.6vh; z-index: 9; display: flex; gap: 10px;
+        flex-wrap: wrap; justify-content: flex-end; max-width: min(62vw, 840px);
+        transition: opacity 1s ease; }
+  .btn { color: #e9decb; font-size: 12px; letter-spacing: .18em; text-indent: .18em;
+         background: rgba(18,16,12,.46); border: 1px solid rgba(233,222,203,.16);
+         padding: 8px 14px; min-height: 32px; border-radius: 999px; backdrop-filter: blur(6px);
+         cursor: pointer; user-select: none; transition: background .3s, border-color .3s, color .3s;
+         font-family: inherit; white-space: nowrap; }
+  .btn:hover { background: rgba(60,50,36,.58); border-color: rgba(233,222,203,.34); }
+  .btn.off { color: #8d8471; }
+  body.idle #hud, body.idle #ui { opacity: 0; }
+
+  /* 中屏:按钮收窄,避免与状态行/亮度条挤在一起 */
+  @media (max-width: 1240px){
+    #ui { max-width: 58vw; gap: 8px; }
+    .btn { font-size: 11px; padding: 7px 11px; letter-spacing: .14em; text-indent: .14em; }
+  }
+  /* 平板:按钮组整体落到底部一行,顶部只留状态行 */
+  @media (max-width: 940px){
+    #ui { left: 0; right: 0; top: auto; bottom: 1.6vh; max-width: none;
+          justify-content: center; gap: 8px; padding: 0 12px; }
+    #hud { display: none; }
+    #caption { bottom: 15vh; }
+    #toast { top: 7.2vh; }
+  }
+  /* 手机:进一步压缩,保证点击热区 */
+  @media (max-width: 560px){
+    #ui { gap: 6px; bottom: 1.2vh; }
+    .btn { font-size: 10px; padding: 6px 9px; letter-spacing: .08em; text-indent: .08em;
+           min-height: 28px; }
+    #caption { bottom: 18vh; }
+    #bright { left: 1vh; transform: translateY(-50%) scale(.72); }
+  }
+
+  /* ---- 亮度能量条 ---- */
+  #bright { position: fixed; left: 2.4vh; top: 50%; transform: translateY(-50%); z-index: 9;
+            display: flex; flex-direction: column; align-items: center; gap: 10px;
+            padding: 13px 8px; border-radius: 999px; user-select: none;
+            background: rgba(18,16,12,.42); border: 1px solid rgba(233,222,203,.14);
+            backdrop-filter: blur(6px); transition: opacity 1s ease; }
+  #bright .bl-label { color: #cbbc9f; font-size: 11px; letter-spacing: .22em;
+            writing-mode: vertical-rl; }
+  #bright .bl-track { display: flex; flex-direction: column-reverse; gap: 5px;
+            cursor: pointer; padding: 2px; touch-action: none; }
+  .bl-cell { width: 14px; height: 9px; border-radius: 2px; background: rgba(233,222,203,.13);
+            transition: background .25s, box-shadow .25s; }
+  .bl-cell.lit { background: #e8b76a; box-shadow: 0 0 9px rgba(232,183,106,.55); }
+  #bright .bl-val { color: #e9decb; font-size: 11px; letter-spacing: .08em;
+            font-variant-numeric: tabular-nums; }
+  body.idle #bright { opacity: 0; }
+  @media (max-width: 640px){ #bright { left: 1.2vh; transform: translateY(-50%) scale(.85); transform-origin: left center; } }
+
+  /* ---- 顶部状态行(靠左,避开右侧按钮组) ---- */
+  #status { position: fixed; left: 2.6vh; top: 2.6vh; z-index: 8;
+            display: flex; align-items: center; gap: 9px; padding: 6px 15px; border-radius: 999px;
+            background: rgba(18,16,12,.42); border: 1px solid rgba(233,222,203,.12);
+            backdrop-filter: blur(6px); color: #cbbc9f; font-size: 11.5px;
+            letter-spacing: .15em; pointer-events: none; transition: opacity 1s ease; }
+  #status .dot { width: 5px; height: 5px; border-radius: 50%; background: #e8b76a;
+                 box-shadow: 0 0 7px #e8b76a; }
+  body.idle #status { opacity: 0; }
+
+  /* ---- 闪电遮罩 ---- */
+  #flash { position: fixed; inset: 0; z-index: 5; background: #e6efff; opacity: 0;
+           pointer-events: none; mix-blend-mode: screen; }
+
+  /* ---- 轻提示 ---- */
+  #toast { position: fixed; left: 50%; top: 8.4vh; transform: translateX(-50%) translateY(-6px);
+           z-index: 13; padding: 8px 16px; border-radius: 999px; background: rgba(232,183,106,.95);
+           color: #20180e; font-size: 12px; letter-spacing: .06em; opacity: 0; max-width: 86vw;
+           pointer-events: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+           transition: opacity .28s ease, transform .28s ease; }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ---- 操作说明面板 ---- */
+  #help { position: fixed; inset: 0; z-index: 12; display: flex; align-items: center;
+          justify-content: center; background: rgba(6,5,4,.7); backdrop-filter: blur(7px);
+          opacity: 0; pointer-events: none; transition: opacity .35s ease; }
+  #help.show { opacity: 1; pointer-events: auto; }
+  #help .panel { width: min(430px, 88vw); max-height: 84vh; overflow: auto; padding: 26px 26px 20px;
+          border-radius: 16px; background: rgba(24,20,15,.94);
+          border: 1px solid rgba(233,222,203,.16); box-shadow: 0 24px 70px rgba(0,0,0,.55); }
+  #help h3 { margin: 0 0 16px; font-size: 13px; font-weight: 500; letter-spacing: .26em;
+             color: #f0e6d2; }
+  #help dl { display: grid; grid-template-columns: 100px 1fr; gap: 10px 14px; margin: 0;
+             font-size: 12.5px; line-height: 1.5; }
+  #help dt { color: #e8b76a; }
+  #help dd { margin: 0; color: #b0a48e; }
+  #help .close { margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(233,222,203,.1);
+                 font-size: 11px; color: #8d8471; letter-spacing: .1em; }
+  @media (max-width: 720px){
+    #status { top: 1.8vh; left: 1.8vh; font-size: 10.5px; padding: 5px 11px; letter-spacing: .1em; }
+    #help dl { grid-template-columns: 84px 1fr; gap: 8px 12px; font-size: 11.5px; }
+    #toast { top: 7.4vh; font-size: 11.5px; }
+  }
+
+  /* ---- 季节/主题切换黑场 ---- */
+  #fade { position: fixed; inset: 0; background: #0b0c10; z-index: 15; pointer-events: none;
+          opacity: 0; transition: opacity .42s ease; }
+  #fade.on { opacity: 1; }
+
+  /* ---- 加载 / 出错 ---- */
+  #loader { position: fixed; inset: 0; background: #101314; z-index: 20; display: flex;
+            flex-direction: column; align-items: center; justify-content: center; gap: 26px;
+            transition: opacity 1.1s ease; }
+  #loader.hide { opacity: 0; pointer-events: none; }
+  #loader .t { color: #d8ccb4; letter-spacing: .5em; text-indent: .5em; font-size: 15px; }
+  #loader .bar2 { width: 150px; height: 1px; background: rgba(216,204,180,.18); overflow: hidden; position: relative; }
+  #loader .bar2::after { content: ""; position: absolute; left: -40%; top: 0; height: 100%; width: 40%;
+                         background: #d8b98a; animation: sweep 1.2s infinite ease-in-out; }
+  @keyframes sweep { to { left: 100%; } }
+  #err { display: none; position: fixed; inset: 0; z-index: 30; background: #101314;
+         color: #d9b9a0; align-items: center; justify-content: center; flex-direction: column;
+         gap: 14px; text-align: center; padding: 30px; line-height: 1.9; letter-spacing: .1em; }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three/build/three.module.js",
+    "three/addons/": "./vendor/three/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body class="cine">
+<canvas id="scene"></canvas>
+<div class="bar" id="barTop"></div>
+<div class="bar" id="barBottom"></div>
+<div id="title"><h1>森林小屋</h1><p id="titleSub">FOREST CABIN · 秋</p></div>
+<div id="hud">拖动环视 · 滚轮缩放 · [ / ] 调亮度</div>
+<div id="caption"><span class="cap-line" id="capLine"></span><div class="cap-dots" id="capDots"></div></div>
+<div id="ui">
+  <button class="btn" id="btnSeason">季节 · 秋</button>
+  <button class="btn" id="btnWeather">天气 · 晴</button>
+  <button class="btn" id="btnTheme">主题 · 无</button>
+  <button class="btn" id="btnMusic">音乐 · 开</button>
+  <button class="btn" id="btnCruise">巡航 · 开</button>
+  <button class="btn" id="btnCine">画幅 · 开</button>
+  <button class="btn" id="btnShot">截图</button>
+  <button class="btn" id="btnShare">分享</button>
+</div>
+<div id="status"><span class="dot"></span><span id="statusText">秋 · 晴 · 60%</span></div>
+<div id="flash"></div>
+<div id="toast"></div>
+<div id="help">
+  <div class="panel">
+    <h3>操 作 说 明</h3>
+    <dl>
+      <dt>拖动 / 单指</dt><dd>环视场景</dd>
+      <dt>滚轮 / 双指</dt><dd>拉近拉远</dd>
+      <dt>左侧能量条</dt><dd>点击或拖动调亮度</dd>
+      <dt>[ / ]</dt><dd>亮度 ±10%</dd>
+      <dt>1 2 3 4</dt><dd>春 / 夏 / 秋 / 冬</dd>
+      <dt>W</dt><dd>切换天气(晴雨雷雪雾)</dd>
+      <dt>T</dt><dd>切换节日主题</dd>
+      <dt>C</dt><dd>开关自动巡航</dd>
+      <dt>F</dt><dd>电影画幅</dd>
+      <dt>M</dt><dd>音乐开关</dd>
+      <dt>P</dt><dd>保存截图</dd>
+      <dt>Esc</dt><dd>关闭本面板</dd>
+    </dl>
+    <div class="close">点击任意处关闭 · 按 ? 再次打开</div>
+  </div>
+</div>
+<div id="bright" title="亮度能量条:点击 / 拖动 / 滚轮调节,[ 和 ] 键微调">
+  <span class="bl-label">亮度</span>
+  <div class="bl-track" id="blTrack"></div>
+  <span class="bl-val" id="blVal">60%</span>
+</div>
+<div id="fade"></div>
+<div id="loader"><div class="t">正在走进森林</div><div class="bar2"></div></div>
+<div id="err"><div>场景资源加载失败</div><div style="font-size:13px;color:#8d8471">请确认 vendor 目录完整(与 index.html 同级),然后刷新页面。</div></div>
+
+<script>
+  window.__errs = [];
+  window.addEventListener('error', function(e){ window.__errs.push(String(e.message)); });
+  setTimeout(function(){ if (!window.__ok) document.getElementById('err').style.display = 'flex'; }, 16000);
+  setTimeout(function(){ document.getElementById('loader').classList.add('hide'); }, 10000);
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
+
+window.__ok = true;
+
+/* ============================================================
+   0. 工具:确定性随机 + 噪声
+============================================================ */
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0;
+  let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t;
+  return ((t^t>>>14)>>>0)/4294967296; }; }
+const rng = mulberry32(20261025);
+const rand = (a=1,b)=> b===undefined ? rng()*a : a+rng()*(b-a);
+const pick = arr => arr[Math.floor(rng()*arr.length)];
+
+function hash2(x,y){ const s = Math.sin(x*127.1 + y*311.7) * 43758.5453; return s - Math.floor(s); }
+function vnoise(x,y){
+  const xi=Math.floor(x), yi=Math.floor(y), xf=x-xi, yf=y-yi;
+  const u=xf*xf*(3-2*xf), v=yf*yf*(3-2*yf);
+  const a=hash2(xi,yi), b=hash2(xi+1,yi), c=hash2(xi,yi+1), d=hash2(xi+1,yi+1);
+  return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v;
+}
+function fbm(x,y,oct=4){ let s=0, amp=.5, f=1;
+  for(let i=0;i<oct;i++){ s+=amp*vnoise(x*f,y*f); amp*=.5; f*=2.03; } return s; }
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const sstep=(a,b,x)=>{ const t=clamp((x-a)/(b-a),0,1); return t*t*(3-2*t); };
+const lerp=(a,b,t)=>a+(b-a)*t;
+
+/* ============================================================
+   0.5 设备性能分级(移动端降档,保证 60fps 下限)
+============================================================ */
+const PERF = (()=>{
+  const cores  = navigator.hardwareConcurrency || 4;
+  const coarse = matchMedia('(pointer:coarse)').matches;
+  const low    = coarse && cores <= 4;
+  return { coarse, low, cores,
+           dpr:     Math.min(devicePixelRatio || 1, low ? 1.5 : 2),
+           shadow:  low ? 1024 : 2048,
+           rainN:   low ? 1600 : 5200 };
+})();
+
+/* ============================================================
+   1. 渲染器 / 场景 / 相机 / 雾
+============================================================ */
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
+renderer.setPixelRatio(PERF.dpr);
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.03;
+
+const scene = new THREE.Scene();
+const FOG_COLOR = new THREE.Color(0xb4a493);
+scene.fog = new THREE.FogExp2(FOG_COLOR, 0.0112);
+
+const camera = new THREE.PerspectiveCamera(42, innerWidth/innerHeight, 0.1, 900);
+camera.position.set(19, 7.5, 23);
+
+/* ============================================================
+   2. 光照
+============================================================ */
+const sunDir = new THREE.Vector3(-38, 16, -14).normalize();
+const sun = new THREE.DirectionalLight(0xffbd88, 3.0);
+sun.position.set(-38, 16, -14);
+sun.castShadow = true;
+sun.shadow.mapSize.set(PERF.shadow, PERF.shadow);
+sun.shadow.camera.left = -28; sun.shadow.camera.right = 28;
+sun.shadow.camera.top = 28;   sun.shadow.camera.bottom = -28;
+sun.shadow.camera.near = 4;   sun.shadow.camera.far = 130;
+sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.5;
+scene.add(sun);
+
+const fill = new THREE.DirectionalLight(0x93a8c8, 0.62);
+fill.position.set(24, 12, 30);
+scene.add(fill);
+
+const hemi = new THREE.HemisphereLight(0xbcc9dd, 0x5a4d3c, 0.72);
+scene.add(hemi);
+const amb = new THREE.AmbientLight(0xffe8c8, 0.16);
+scene.add(amb);
+
+/* ============================================================
+   3. 程序化纹理
+============================================================ */
+function makeTex(w, h, fn){
+  const c = document.createElement('canvas'); c.width=w; c.height=h;
+  const g = c.getContext('2d'); fn(g, w, h);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 8;
+  return t;
+}
+function speckle(g, w, h, n, colors, size=1.6, alpha=.16){
+  for(let i=0;i<n;i++){ g.fillStyle = colors[Math.floor(rng()*colors.length)];
+    g.globalAlpha = alpha * rand(.4, 1);
+    g.fillRect(rand(w), rand(h), size*rand(.5,1.6), size*rand(.5,1.6)); }
+  g.globalAlpha = 1;
+}
+
+const barkTex = makeTex(256, 256, (g,w,h)=>{
+  g.fillStyle = '#6e5138'; g.fillRect(0,0,w,h);
+  for(let i=0;i<150;i++){
+    const x = rand(w), lw = rand(2,7), tone = rand();
+    g.strokeStyle = tone>.5 ? `rgba(48,33,22,${rand(.15,.4)})` : `rgba(150,120,86,${rand(.08,.22)})`;
+    g.lineWidth = lw;
+    g.beginPath(); g.moveTo(x, -10);
+    g.bezierCurveTo(x+rand(-8,8), h*.33, x+rand(-8,8), h*.66, x+rand(-10,10), h+10);
+    g.stroke();
+  }
+  speckle(g,w,h,700,['#3c2b1d','#8a6c4e','#54402c']);
+});
+
+// 现代深炭色横向木墙板
+const claddingTex = makeTex(256, 256, (g,w,h)=>{
+  g.fillStyle = '#26231f'; g.fillRect(0,0,w,h);
+  for(let y=0; y<h; y+=14){
+    const t = rand();
+    g.fillStyle = `rgb(${38+t*10|0},${35+t*9|0},${31+t*8|0})`;
+    g.fillRect(0, y+1, w, 12);
+    g.fillStyle = 'rgba(0,0,0,.5)'; g.fillRect(0, y, w, 2);
+    g.fillStyle = `rgba(190,150,105,${rand(.02,.06)})`; g.fillRect(0, y+1, w, 1);
+  }
+  speckle(g,w,h,380,['#171410','#3d3831'],1.4,.18);
+});
+
+// 现代哑光深色屋面
+const roofDarkTex = makeTex(256, 256, (g,w,h)=>{
+  g.fillStyle = '#26282b'; g.fillRect(0,0,w,h);
+  for(let x=0; x<w; x+=64){
+    g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(x, 0, 2, h);
+    g.fillStyle = `rgba(255,255,255,${rand(.015,.04)})`; g.fillRect(x+2, 0, 2, h);
+  }
+  speckle(g,w,h,320,['#1b1d20','#33363a'],1.6,.2);
+});
+
+// 浅暖色木平台
+const deckTex = makeTex(256, 256, (g,w,h)=>{
+  g.fillStyle = '#9c7c56'; g.fillRect(0,0,w,h);
+  for(let y=0; y<h; y+=24){
+    const t = rand();
+    g.fillStyle = `rgb(${158+t*26|0},${128+t*22|0},${92+t*16|0})`;
+    g.fillRect(0, y+1, w, 22);
+    g.fillStyle = 'rgba(40,26,14,.55)'; g.fillRect(0, y, w, 2);
+    for(let i=0;i<4;i++){
+      g.strokeStyle = `rgba(90,66,40,${rand(.12,.3)})`; g.lineWidth = 1;
+      const gy = y + rand(3,20);
+      g.beginPath(); g.moveTo(0,gy); g.bezierCurveTo(w*.3, gy+rand(-2,2), w*.6, gy+rand(-2,2), w, gy+rand(-3,3)); g.stroke();
+    }
+  }
+  speckle(g,w,h,420,['#6b543a','#c09a6f'],1.4,.14);
+});
+
+const stoneTex = makeTex(256, 256, (g,w,h)=>{
+  g.fillStyle = '#6f695f'; g.fillRect(0,0,w,h);
+  for(let i=0;i<90;i++){
+    const x=rand(w), y=rand(h), rw=rand(18,46), rh=rand(12,30);
+    const t=rand();
+    g.fillStyle = `rgb(${120+t*36|0},${116+t*33|0},${106+t*30|0})`;
+    g.beginPath(); g.ellipse(x,y,rw*.5,rh*.5, rand(-.4,.4), 0, Math.PI*2); g.fill();
+    g.strokeStyle = 'rgba(40,36,32,.55)'; g.lineWidth = 2.5; g.stroke();
+  }
+  speckle(g,w,h,800,['#3f3a33','#9a938a','#57534b'],1.8,.22);
+});
+
+const groundTex = makeTex(256, 256, (g,w,h)=>{
+  g.fillStyle = '#5b6540'; g.fillRect(0,0,w,h);
+  for(let i=0;i<260;i++){
+    const x=rand(w), y=rand(h), r=rand(5,22);
+    const c = pick(['#66744a','#515c38','#6d6a45','#5f5d3d','#6b5f41','#576343']);
+    g.fillStyle = c; g.globalAlpha = rand(.2,.5);
+    g.beginPath(); g.ellipse(x,y,r,r*rand(.5,1),rand(3),0,Math.PI*2); g.fill();
+  }
+  g.globalAlpha = 1;
+  speckle(g,w,h,900,['#3d4530','#7a8355','#8a7a4e','#4a4030'],1.6,.25);
+});
+groundTex.repeat.set(16,16);
+
+const snowGroundTex = makeTex(256, 256, (g,w,h)=>{
+  g.fillStyle = '#eef2f7'; g.fillRect(0,0,w,h);
+  for(let i=0;i<200;i++){
+    const x=rand(w), y=rand(h), r=rand(6,26);
+    g.fillStyle = pick(['#f7fafc','#e3eaf2','#dce5ee']);
+    g.globalAlpha = rand(.25,.55);
+    g.beginPath(); g.ellipse(x,y,r,r*rand(.4,.9),rand(3),0,Math.PI*2); g.fill();
+  }
+  g.globalAlpha = 1;
+  speckle(g,w,h,700,['#d4dde8','#ffffff','#c8d3e0'],1.4,.2);
+});
+snowGroundTex.repeat.set(16,16);
+
+// 窗内景剪影:暗室 + 蜡烛与 LED 灯珠(不再整片大亮)
+const paneTex = makeTex(256, 256, (g,w,h)=>{
+  const grad = g.createLinearGradient(0,0,0,h);
+  grad.addColorStop(0,  '#3b2415');
+  grad.addColorStop(.45,'#2b190d');
+  grad.addColorStop(.8, '#1e1108');
+  grad.addColorStop(1,  '#150b05');
+  g.fillStyle = grad; g.fillRect(0,0,w,h);
+  g.fillStyle = 'rgba(10,6,3,.74)'; g.fillRect(0, h*.8, w, h*.2);          // 地板
+  g.fillStyle = 'rgba(10,6,3,.68)'; g.fillRect(w*.08, h*.58, w*.46, h*.14); // 沙发
+  g.fillStyle = 'rgba(10,6,3,.62)'; g.fillRect(w*.6, h*.4, w*.24, h*.035);   // 桌面
+  g.fillStyle = 'rgba(10,6,3,.58)'; g.fillRect(w*.62, h*.43, w*.03, h*.37);  // 桌腿
+  // 蜡烛:细柱 + 顶部火焰 + 微弱光晕
+  const candle = (cx, cy, hh)=>{
+    g.fillStyle = 'rgba(210,192,160,.8)';
+    g.fillRect(cx-2.4, cy, 4.8, hh);
+    g.fillStyle = 'rgba(255,208,132,.92)';
+    g.beginPath(); g.ellipse(cx, cy-3.6, 2.3, 3.8, 0, 0, 7); g.fill();
+    g.fillStyle = 'rgba(255,186,104,.16)';
+    g.beginPath(); g.arc(cx, cy-3, 10, 0, 7); g.fill();
+  };
+  candle(w*.17, h*.46, 15);
+  candle(w*.30, h*.42, 11);
+  candle(w*.71, h*.38, 13);
+  // LED 灯珠:墙上一点串光,弱而冷白偏暖
+  for(let i=0;i<8;i++){
+    const x = w*(.07+i*.12), y = h*(.13 + (i%2)*.035);
+    g.fillStyle = 'rgba(255,224,176,.42)';
+    g.beginPath(); g.arc(x, y, 1.9, 0, 7); g.fill();
+    g.fillStyle = 'rgba(255,210,146,.09)';
+    g.beginPath(); g.arc(x, y, 5.5, 0, 7); g.fill();
+  }
+});
+
+function glowTex(inner, outer){
+  return makeTex(128, 128, (g,w,h)=>{
+    const gr = g.createRadialGradient(w/2,h/2,0, w/2,h/2,w/2);
+    gr.addColorStop(0, inner); gr.addColorStop(.4, outer); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr; g.fillRect(0,0,w,h);
+  });
+}
+const sunGlowTex  = glowTex('rgba(255,240,214,1)', 'rgba(255,196,120,.5)');
+const fireGlowTex = glowTex('rgba(255,230,170,1)', 'rgba(255,190,90,.4)');
+const smokeTex    = makeTex(128,128,(g,w,h)=>{
+  const gr = g.createRadialGradient(w/2,h/2,0, w/2,h/2,w/2);
+  gr.addColorStop(0,'rgba(235,230,224,.5)'); gr.addColorStop(.6,'rgba(220,214,206,.22)');
+  gr.addColorStop(1,'rgba(210,205,198,0)');
+  g.fillStyle=gr; g.fillRect(0,0,w,h);
+  for(let i=0;i<40;i++){ g.fillStyle=`rgba(200,196,190,${rand(.04,.1)})`;
+    g.beginPath(); g.arc(rand(w),rand(h),rand(4,14),0,7); g.fill(); }
+});
+
+/* ============================================================
+   4. 材质
+============================================================ */
+const uTime = { value: 0 };
+
+const matClad   = new THREE.MeshStandardMaterial({ map:claddingTex, color:0x9c7c57, roughness:.88 });
+const matRoofM  = new THREE.MeshStandardMaterial({ map:roofDarkTex, color:0x3f464e, roughness:.62, metalness:.3 });
+const matDeck   = new THREE.MeshStandardMaterial({ map:deckTex, color:0xb58a5d, roughness:.82 });
+const matBlack  = new THREE.MeshStandardMaterial({ color:0x17181b, roughness:.45, metalness:.55 });
+const matBlackM = new THREE.MeshStandardMaterial({ color:0x141518, roughness:.5, metalness:.4 });
+const matConc   = new THREE.MeshStandardMaterial({ color:0x46423c, roughness:1 });
+const matWoodWarm = new THREE.MeshStandardMaterial({ color:0xa87a4e, roughness:.78 });   // 门廊家具:暖木
+const matTerra    = new THREE.MeshStandardMaterial({ color:0x9c5a3c, roughness:.92 });   // 盆栽:陶土
+const matStone  = new THREE.MeshStandardMaterial({ map:stoneTex, color:0xb0aca2, roughness:1 });
+const matTrunk  = new THREE.MeshLambertMaterial({ color:0x6d4b33, map:barkTex });
+const matSnow   = new THREE.MeshStandardMaterial({ color:0xf1f5fa, roughness:.95 });
+const matPane   = new THREE.MeshStandardMaterial({
+  map:paneTex, color:0xbdb0a4, emissive:0xffb066, emissiveMap:paneTex, emissiveIntensity:.55, roughness:.35,
+  polygonOffset:true, polygonOffsetFactor:-1, polygonOffsetUnits:-1   // 避免与窗框共面导致深度冲突闪烁
+});
+const matWoodDk = new THREE.MeshStandardMaterial({ color:0x4c3a29, roughness:.85 });
+
+function addSway(mat, amp){
+  mat.onBeforeCompile = (sh)=>{
+    sh.uniforms.uTime = uTime;
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nuniform float uTime;')
+      .replace('#include <begin_vertex>', `#include <begin_vertex>
+        float swPh = instanceMatrix[3].x * .6 + instanceMatrix[3].z * .45;
+        float swayA = ${amp};
+        transformed.x += sin(uTime * 1.5 + swPh) * swayA * max(transformed.y, 0.0);
+        transformed.z += cos(uTime * 1.15 + swPh * 1.3) * swayA * .8 * max(transformed.y, 0.0);`);
+  };
+}
+
+/* ============================================================
+   5. 天空 / 太阳 / 星星
+============================================================ */
+const skyMat = new THREE.ShaderMaterial({
+  side: THREE.BackSide, fog:false, depthWrite:false,
+  uniforms:{
+    uTop:     { value: new THREE.Color(0x33506e).convertSRGBToLinear() },
+    uHorizon: { value: new THREE.Color(0xd0a984).convertSRGBToLinear() },
+    uSun:     { value: new THREE.Color(0xffd9a8).convertSRGBToLinear() },
+    uSunDir:  { value: sunDir.clone() },
+    uFog:     { value: FOG_COLOR.clone().convertSRGBToLinear() },
+  },
+  vertexShader: `
+    varying vec3 vW;
+    void main(){ vW = (modelMatrix * vec4(position,1.)).xyz;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.); }`,
+  fragmentShader: `
+    varying vec3 vW;
+    uniform vec3 uTop, uHorizon, uSun, uSunDir, uFog;
+    void main(){
+      vec3 d = normalize(vW);
+      float h = clamp(d.y, 0., 1.);
+      vec3 sky = mix(uHorizon, uTop, pow(h, .58));
+      sky = mix(uFog, sky, smoothstep(-.02, .1, d.y));
+      float s = max(dot(d, uSunDir), 0.);
+      sky += uSun * (pow(s, 300.) * 1.35 + pow(s, 28.) * .38 + pow(s, 6.) * .14);
+      gl_FragColor = vec4(sky, 1.);
+    }`
+});
+scene.add(new THREE.Mesh(new THREE.SphereGeometry(430, 32, 20), skyMat));
+
+const sunSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+  map:sunGlowTex, color:0xffe2b0, blending:THREE.AdditiveBlending,
+  transparent:true, depthWrite:false, fog:false, opacity:.95 }));
+sunSprite.scale.setScalar(70);
+scene.add(sunSprite);
+const sunHalo = new THREE.Sprite(new THREE.SpriteMaterial({
+  map:sunGlowTex, color:0xffc98a, blending:THREE.AdditiveBlending,
+  transparent:true, depthWrite:false, fog:false, opacity:.4 }));
+sunHalo.scale.setScalar(190);
+scene.add(sunHalo);
+
+let starsMat;
+{
+  const n = 220, pos = new Float32Array(n*3);
+  for(let i=0;i<n;i++){
+    const th = rand(Math.PI*2), ph = Math.acos(rand(.45, .98));
+    const r = 400;
+    pos[i*3]   = r*Math.sin(ph)*Math.cos(th);
+    pos[i*3+1] = r*Math.cos(ph);
+    pos[i*3+2] = r*Math.sin(ph)*Math.sin(th);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  starsMat = new THREE.PointsMaterial({
+    color:0xcfe0ff, size:1.5, sizeAttenuation:false, transparent:true,
+    opacity:.5, depthWrite:false, fog:false });
+  scene.add(new THREE.Points(g, starsMat));
+}
+
+/* ============================================================
+   6. 地形
+============================================================ */
+function terrainH(x, z){
+  const d = Math.hypot(x, z);
+  let h = fbm(x*.022, z*.022, 4) * 3.4 - 1.2;
+  h *= sstep(9, 26, d);
+  h += sstep(62, 128, d) * 11;
+  return h;
+}
+let groundMesh, groundGeo;
+{
+  groundGeo = new THREE.PlaneGeometry(280, 280, 150, 150);
+  groundGeo.rotateX(-Math.PI/2);
+  const pos = groundGeo.attributes.position;
+  const colors = new Float32Array(pos.count*3);
+  groundGeo.setAttribute('color', new THREE.BufferAttribute(colors,3));
+  for(let i=0;i<pos.count;i++){
+    pos.setY(i, terrainH(pos.getX(i), pos.getZ(i)));
+  }
+  groundGeo.computeVertexNormals();
+  groundMesh = new THREE.Mesh(groundGeo, new THREE.MeshStandardMaterial({
+    map:groundTex, vertexColors:true, roughness:1 }));
+  groundMesh.receiveShadow = true;
+  scene.add(groundMesh);
+}
+const GROUND_PAL = {
+  spring: { A:0x83a455, B:0x6d9350, dirt:0x8a7a5e, fall:0x8a9a56 },
+  summer: { A:0x5f7f42, B:0x4c6a3a, dirt:0x7c6c4c, fall:0x6f7f42 },
+  autumn: { A:0x74804d, B:0x5b633c, dirt:0x7a6849, fall:0x9c7c42 },
+  winter: { A:0xeef2f7, B:0xdbe3ec, dirt:0xe4e9f0, fall:0xf7fafc },
+};
+function recolorGround(season){
+  const pal = GROUND_PAL[season];
+  const cA = new THREE.Color(pal.A), cB = new THREE.Color(pal.B),
+        cD = new THREE.Color(pal.dirt), cF = new THREE.Color(pal.fall);
+  const pos = groundGeo.attributes.position, col = groundGeo.attributes.color;
+  const tmp = new THREE.Color();
+  const winter = season === 'winter';
+  for(let i=0;i<pos.count;i++){
+    const x = pos.getX(i), z = pos.getZ(i), y = pos.getY(i);
+    const n = fbm(x*.09+7, z*.09+3, 3);
+    tmp.copy(cA).lerp(cB, n);
+    const dirt = sstep(.55,.75, fbm(x*.14+31, z*.14+17, 3)) * (winter ? .35 : .8);
+    tmp.lerp(cD, dirt*.5);
+    if (!winter && fbm(x*.06+91, z*.06+55, 3) > .62) tmp.lerp(cF, .4);
+    const shade = winter ? .86 + .14*clamp((y+2)/6,0,1) : .8 + .2*clamp((y+2)/6,0,1);
+    tmp.multiplyScalar(shade);
+    col.setXYZ(i, tmp.r, tmp.g, tmp.b);
+  }
+  col.needsUpdate = true;
+  groundMesh.material.map = winter ? snowGroundTex : groundTex;
+  groundMesh.material.needsUpdate = true;
+}
+recolorGround('autumn');
+
+/* ============================================================
+   7. 实例化植被
+============================================================ */
+function jitterGeo(geo, amt){
+  const p = geo.attributes.position;
+  for(let i=0;i<p.count;i++){
+    p.setXYZ(i, p.getX(i)+rand(-amt,amt), p.getY(i)+rand(-amt,amt), p.getZ(i)+rand(-amt,amt));
+  }
+  return geo;
+}
+
+const pineTrunkGeo = new THREE.CylinderGeometry(.14,.22,2.4,7);
+pineTrunkGeo.translate(0,1.2,0);
+const pineCanopyGeo = (()=>{
+  const parts = [];
+  const layers = [[1.75,1.9,1.5],[1.45,1.7,2.7],[1.05,1.5,3.9],[.62,1.3,5.0]];
+  for(const [r,h,y] of layers){
+    const c = new THREE.ConeGeometry(r,h,8);
+    c.translate(0,y,0); parts.push(jitterGeo(c,.06));
+  }
+  return BufferGeometryUtils.mergeGeometries(parts);
+})();
+const oakTrunkGeo = new THREE.CylinderGeometry(.13,.24,2.8,7);
+oakTrunkGeo.translate(0,1.4,0);
+const oakCanopyGeo = (()=>{
+  const parts = [];
+  const blobs = [[1.15,1.9,0,0],[ .9,2.6,.7,.35],[ .85,2.5,-.65,-.2],[ .7,3.15,.1,.6]];
+  for(const [r,y,x,z] of blobs){
+    const b = jitterGeo(new THREE.IcosahedronGeometry(r,1), .13);
+    b.translate(x,y,z); parts.push(b);
+  }
+  return BufferGeometryUtils.mergeGeometries(parts);
+})();
+const pineCanopyMat = new THREE.MeshLambertMaterial({ color:0xffffff, flatShading:true });
+const oakCanopyMat  = new THREE.MeshLambertMaterial({ color:0xffffff, flatShading:true });
+addSway(pineCanopyMat, '0.012');
+addSway(oakCanopyMat, '0.02');
+
+const treePts = [];
+{
+  const heroTrees = [[-11,-16,1.9],[13,-14,1.6],[18,-6,1.35],[-18,-7,1.5]];
+  for(const [x,z,s] of heroTrees) treePts.push({x,z,scale:s, oak:true});
+  for(let i=0;i<300;i++){
+    const a = rand(Math.PI*2);
+    const r = 19 + Math.pow(rng(), .75) * 96;
+    const x = Math.cos(a)*r, z = Math.sin(a)*r;
+    const oak = rng() < .38;
+    treePts.push({ x, z, scale: rand(.75,1.7) * (r>55? rand(1.1,1.9):1), oak });
+  }
+}
+const pines = treePts.filter(t=>!t.oak), oaks = treePts.filter(t=>t.oak);
+
+function fillInstanced(geo, mat, items, colorFn){
+  const m = new THREE.InstancedMesh(geo, mat, items.length);
+  const d = new THREE.Object3D(), c = new THREE.Color();
+  items.forEach((it,i)=>{
+    it._r1 = rng(); it._r2 = rng();
+    d.position.set(it.x, terrainH(it.x,it.z)-.1, it.z);
+    d.rotation.y = rand(Math.PI*2);
+    d.scale.setScalar(it.scale);
+    d.updateMatrix();
+    m.setMatrixAt(i, d.matrix);
+    if (colorFn){ colorFn(c, it, i); m.setColorAt(i, c); }
+  });
+  m.castShadow = true; m.receiveShadow = true;
+  if (m.instanceColor) m.instanceColor.needsUpdate = true;
+  scene.add(m);
+  return m;
+}
+fillInstanced(pineTrunkGeo, matTrunk, pines);
+const pineMesh = fillInstanced(pineCanopyGeo, pineCanopyMat, pines, (c)=>c.setHSL(.30,.35,.29));
+fillInstanced(oakTrunkGeo, matTrunk, oaks);
+const oakMesh = fillInstanced(oakCanopyGeo, oakCanopyMat, oaks, (c)=>c.setHSL(.09,.6,.46));
+
+let bushMesh, bushItems;
+{
+  const bushGeo = jitterGeo(new THREE.IcosahedronGeometry(.55,1), .1);
+  const bushMat = new THREE.MeshLambertMaterial({ color:0xffffff, flatShading:true });
+  addSway(bushMat, '0.03');
+  bushItems = [];
+  for(let i=0;i<64;i++){
+    const a = rand(Math.PI*2), r = rng()<.25 ? rand(5.5,12) : rand(16,60);
+    bushItems.push({ x:Math.cos(a)*r, z:Math.sin(a)*r, scale:rand(.5,1.3) });
+  }
+  bushItems.push({x:-3.6,z:3.4,scale:.8},{x:4.2,z:2.2,scale:.65});
+  bushMesh = fillInstanced(bushGeo, bushMat, bushItems, (c)=>c.setHSL(.27,.35,.3));
+}
+{
+  const rockGeo = jitterGeo(new THREE.IcosahedronGeometry(.6,0), .12);
+  const rockMat = new THREE.MeshLambertMaterial({ color:0x8b877e, flatShading:true });
+  const items = [];
+  for(let i=0;i<42;i++){
+    const a = rand(Math.PI*2), r = rand(7,80);
+    items.push({ x:Math.cos(a)*r, z:Math.sin(a)*r, scale:rand(.25,1.5) });
+  }
+  items.push({x:6.4,z:4.4,scale:.8},{x:-6.8,z:2.8,scale:.55},{x:2.2,z:6.6,scale:.4});
+  fillInstanced(rockGeo, rockMat, items);
+}
+
+let grassMesh, grassItems;
+{
+  const blades = [];
+  for(let b=0;b<7;b++){
+    const a = rand(Math.PI*2), lean = rand(.06,.2);
+    const x0 = Math.cos(a)*.09, z0 = Math.sin(a)*.09;
+    const h = rand(.32,.62);
+    const x1 = x0 + Math.cos(a)*lean, z1 = z0 + Math.sin(a)*lean;
+    blades.push(
+      -0.045+b*.013, 0, -0.02,   0.045+b*.011, 0, 0.025,
+      x1, h, z1
+    );
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(blades, 3));
+  const p = g.attributes.position;
+  const cols = new Float32Array(p.count*3);
+  for(let i=0;i<p.count;i++){
+    const t = clamp(p.getY(i)/.6, 0, 1);
+    cols[i*3]   = lerp(.36,.62,t);
+    cols[i*3+1] = lerp(.42,.66,t);
+    cols[i*3+2] = lerp(.22,.36,t);
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(cols,3));
+  g.computeVertexNormals();
+  const grassMat = new THREE.MeshLambertMaterial({ vertexColors:true, side:THREE.DoubleSide });
+  addSway(grassMat, '0.06');
+  const N = 1600;
+  grassMesh = new THREE.InstancedMesh(g, grassMat, N);
+  const d = new THREE.Object3D();
+  grassItems = [];
+  let placed = 0, guard = 0;
+  while(placed < N && guard++ < 9000){
+    const a = rand(Math.PI*2), r = Math.sqrt(rng())*27;
+    const x = Math.cos(a)*r, z = Math.sin(a)*r;
+    if (z > 2.2 && Math.abs(x) < 2.6) continue;
+    if (Math.abs(x)<4.6 && Math.abs(z)<4.6) continue;
+    const it = { x, z, y:terrainH(x,z)-.02, rot:rand(Math.PI*2), scale:rand(.6,1.25) };
+    it._r1 = rng(); it._r2 = rng();
+    grassItems.push(it);
+    d.position.set(it.x, it.y, it.z);
+    d.rotation.y = it.rot;
+    d.scale.setScalar(it.scale);
+    d.updateMatrix();
+    grassMesh.setMatrixAt(placed, d.matrix);
+    placed++;
+  }
+  grassMesh.count = placed;
+  grassMesh.receiveShadow = true;
+  scene.add(grassMesh);
+}
+
+/* —— 季节性重着色 —— */
+function recolorPines(season){
+  const c = new THREE.Color();
+  pines.forEach((it,i)=>{
+    const r = it._r1;
+    if (season==='spring')      c.setHSL(.33+r*.04, .38, .3+r*.05);
+    else if (season==='summer') c.setHSL(.31+r*.03, .45, .24+r*.05);
+    else if (season==='autumn') c.setHSL(.30+r*.09-.045, .28+r*.14, .24+r*.1);
+    else                        c.setHSL(.34, .16, .38+r*.12);          // 冬:覆霜浅绿
+    pineMesh.setColorAt(i, c);
+  });
+  pineMesh.instanceColor.needsUpdate = true;
+}
+function recolorOaks(season){
+  const c = new THREE.Color();
+  oaks.forEach((it,i)=>{
+    const r = it._r1, r2 = it._r2;
+    if (season==='spring')      { if (r<.38) c.setHSL(.92+r2*.04, .5, .72); else c.setHSL(.27+r*.05, .42, .4+r*.08); }
+    else if (season==='summer') c.setHSL(.29+r*.04, .48, .27+r*.08);
+    else if (season==='autumn') c.setHSL([.07,.09,.11,.055][Math.floor(r2*4)%4]+r*.02, .5+r2*.18, .4+r*.12);
+    else                        c.setHSL(.08+r*.03, .22, .3+r*.08);        // 冬:枯枝棕灰
+    oakMesh.setColorAt(i, c);
+  });
+  oakMesh.instanceColor.needsUpdate = true;
+}
+function recolorBushes(season){
+  const c = new THREE.Color();
+  bushItems.forEach((it,i)=>{
+    const r = it._r1;
+    if (season==='spring')      c.setHSL(r<.3? .92 : .3, r<.3? .5:.4, r<.3? .7:.36);
+    else if (season==='summer') c.setHSL(.3, .45, .28+r*.06);
+    else if (season==='autumn') c.setHSL(r<.45? .08:.27, r<.45? .55:.35, r<.45? .38:.28);
+    else                        c.setHSL(.08, .18, .3);
+    bushMesh.setColorAt(i, c);
+  });
+  bushMesh.instanceColor.needsUpdate = true;
+}
+function recolorGrass(season){
+  const c = new THREE.Color();
+  grassItems.forEach((it,i)=>{
+    const r = it._r1, r2 = it._r2;
+    if (season==='spring'){
+      if (r<.13) c.set([0xf2b8cc,0xfff0f5,0xf5e07a][Math.floor(r2*77)%3]);
+      else c.setHSL(.24+r*.05, .45, .44+r*.1);
+    }
+    else if (season==='summer') c.setHSL(.3+r*.04, .5, .3+r*.1);
+    else if (season==='autumn') c.setHSL(r<.22? .11 : .2+r*.05, r<.22? .5:.38, r<.22? .45:.42+r*.1);
+    else c.set(0xffffff);
+    grassMesh.setColorAt(i, c);
+  });
+  grassMesh.instanceColor.needsUpdate = true;
+}
+function recolorVegetation(season){
+  recolorPines(season); recolorOaks(season); recolorBushes(season);
+  if (season !== 'winter') recolorGrass(season);
+  grassMesh.visible = season !== 'winter';
+}
+recolorVegetation('autumn');
+
+/* ============================================================
+   8. 小屋:轻奢简约(落地玻璃 + 单坡悬挑屋顶 + 炭色墙板)
+============================================================ */
+const cabin = new THREE.Group();
+scene.add(cabin);
+const CW = 7.0, CD = 5.4;
+
+function box(w,h,d,mat,x,y,z,ry=0,rz=0,rx=0){
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat);
+  m.position.set(x,y,z); m.rotation.set(rx,ry,rz);
+  m.castShadow = m.receiveShadow = true;
+  cabin.add(m); return m;
+}
+
+const roofGroup = new THREE.Group(); cabin.add(roofGroup);
+const snowGroup = new THREE.Group(); scene.add(snowGroup);
+const windowPanes = [], winLights = [], glowPoolMats = [], candleLights = [];
+
+{ // —— 基座 + 主体
+  box(CW+.3,.3,CD+.3, matConc, 0,.15,0);
+  box(CW,3.3,CD, matClad, 0,.3+1.65,0);
+}
+{ // —— 单坡悬挑屋顶:前高后低
+  const front = { z:3.9, y:4.42 }, back = { z:-3.1, y:3.42 };
+  const run = front.z - back.z, rise = front.y - back.y;
+  const ang = Math.atan2(rise, run);
+  const slopeLen = Math.hypot(run, rise) + .2;
+  const roof = box(8.0,.16,slopeLen, matRoofM, 0,(front.y+back.y)/2,(front.z+back.z)/2, 0,0,-ang);
+  roofGroup.attach(roof);
+  // 檐口黑色金属边 + 檐下暖光灯带
+  const fascia = box(8.0,.24,.08, matBlack, 0, front.y+.02, front.z);
+  roofGroup.attach(fascia);
+  const led = box(7.5,.035,.035,
+    new THREE.MeshStandardMaterial({ color:0x442200, emissive:0xffc37a, emissiveIntensity:1.0 }),
+    0, front.y-.1, front.z-.06);
+  roofGroup.attach(led);
+  // 屋顶雪层(冬季/圣诞)
+  const rs = new THREE.Mesh(new THREE.BoxGeometry(8.0,.1,slopeLen), matSnow);
+  rs.position.set(0,(front.y+back.y)/2+.13,(front.z+back.z)/2);
+  rs.rotation.x = -ang; rs.castShadow = true;
+  snowGroup.add(rs);
+}
+const CHIMNEY_TOP = new THREE.Vector3(1.9, 5.15, -1.0);
+{ // —— 细黑钢烟囱
+  const ch = new THREE.Mesh(new THREE.CylinderGeometry(.16,.16,2.0,10), matBlack);
+  ch.position.set(1.9, 4.15, -1.0); ch.castShadow = true; cabin.add(ch);
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(.24,.24,.06,10), matBlack);
+  cap.position.set(1.9, 5.18, -1.0); cabin.add(cap);
+}
+{ // —— 前脸玻璃幕墙 + 黑框
+  const fz = CD/2 + .02;
+  const rail = (y)=> box(6.9,.1,.14, matBlack, 0, y, fz+.03);
+  rail(.52); rail(3.42);
+  for(const x of [-3.42,-.32,.88,3.42]) box(.1,3.0,.14, matBlack, x, 1.97, fz+.03);
+  box(6.6,.05,.1, matBlackM, 0, 2.62, fz+.02);      // 中横细梃
+  const pane = (x,w)=>{
+    const p = new THREE.Mesh(new THREE.PlaneGeometry(w,2.84), matPane);
+    p.position.set(x, 1.98, fz); cabin.add(p); windowPanes.push(p);
+  };
+  pane(-1.87, 2.96);   // 左大玻璃
+  pane(0.28, 1.14);    // 玻璃门
+  pane(2.14, 2.5);     // 右玻璃
+  box(.05,1.0,.05, matBlackM, .74, 1.85, fz+.1);    // 门拉手
+  // 山墙圆窗取消;侧墙飘窗(ribbon window)
+  for(const s of [-1,1]){
+    const g = new THREE.Group();
+    const f1 = new THREE.Mesh(new THREE.BoxGeometry(3.4,.72,.1), matBlack);
+    g.add(f1);
+    const p = new THREE.Mesh(new THREE.PlaneGeometry(3.28,.6), matPane);
+    p.position.z = .058; g.add(p); windowPanes.push(p);   // 脱离窗框外表面(.05),修 z-fighting 屏闪
+    g.rotation.y = s*Math.PI/2;
+    g.position.set(s*(CW/2+.02), 2.3, -.4);
+    cabin.add(g);
+  }
+}
+{ // —— 门廊:全宽木平台 + 两级台阶 + 极简家具
+  const deck = box(7.7,.12,2.1, matDeck, 0,.42,CD/2+1.02);
+  deck.material = matDeck;
+  box(2.6,.1,.55, matConc, 0,.26,CD/2+2.25);
+  box(2.6,.1,.55, matConc, 0,.13,CD/2+2.8);
+  // 长凳(暖木座面 + 黑铁腿)
+  box(1.7,.08,.42, matWoodWarm, -2.1,.78,CD/2+1.0);
+  for(const dx of [-.7,.7]) box(.06,.28,.36, matBlackM, -2.1+dx,.62,CD/2+1.0);
+  // 盆栽(陶土盆)
+  box(.5,.44,.5, matTerra, 2.9,.7,CD/2+.9);
+}
+const planterFlowers = new THREE.Group();
+{
+  for(let i=0;i<4;i++){
+    const f = new THREE.Mesh(new THREE.SphereGeometry(.07,7,6),
+      new THREE.MeshStandardMaterial({ color: pick([0xc46a5a,0xd9a441,0xb85a76]), roughness:.8 }));
+    f.position.set(2.9+rand(-.18,.18), .98, CD/2+.9+rand(-.18,.18)); planterFlowers.add(f);
+    const leaf = new THREE.Mesh(new THREE.SphereGeometry(.06,6,5),
+      new THREE.MeshStandardMaterial({ color:0x5d7050, roughness:1 }));
+    leaf.position.set(f.position.x, .93, f.position.z); leaf.scale.set(1.4,.7,1); planterFlowers.add(leaf);
+  }
+  cabin.add(planterFlowers);
+}
+{ // —— 壁灯:烛台蜡烛(火焰 + 微弱点光源) + 压暗后的窗光
+  for(const x of [-3.2, 1.05]){
+    const g = new THREE.Group();
+    const holder = new THREE.Mesh(new THREE.CylinderGeometry(.075,.095,.055,10), matBlackM);
+    holder.position.y = .028; g.add(holder);
+    const wax = new THREE.Mesh(new THREE.CylinderGeometry(.03,.033,.2,8),
+      new THREE.MeshStandardMaterial({ color:0xe8dfc8, roughness:.85 }));
+    wax.position.y = .15; g.add(wax);
+    const flame = new THREE.Sprite(new THREE.SpriteMaterial({ map:fireGlowTex, color:0xffc46a,
+      transparent:true, opacity:.9, blending:THREE.AdditiveBlending, depthWrite:false, fog:false }));
+    flame.scale.set(.17,.25,1); flame.position.y = .29; g.add(flame);
+    const l = new THREE.PointLight(0xffb45c, .5, 3.4, 2);
+    l.position.y = .29; g.add(l);
+    g.position.set(x, 1.68, CD/2+.1); cabin.add(g);
+    candleLights.push({ light:l, flame, baseI:.5, ph:rand(0,6.28) });
+  }
+  const mk = (x,z,i)=>{ const l = new THREE.PointLight(0xffb066, i, 5.5, 2); l.position.set(x,1.75,z); scene.add(l); return l; };
+  winLights.push(mk(-3.2, CD/2+.45, 1.05), mk(1.05, CD/2+.45, 1.05), mk(0, CD/2+.9, .75));
+  const poolMat = new THREE.MeshBasicMaterial({ map:fireGlowTex, color:0xffab55,
+    transparent:true, opacity:.12, blending:THREE.AdditiveBlending, depthWrite:false, fog:false });
+  glowPoolMats.push(poolMat);
+  for(const [x,z,s] of [[-3.2,3.5,1.6],[1.05,3.5,1.6],[0,3.7,1.9]]){
+    const p = new THREE.Mesh(new THREE.PlaneGeometry(s,s*.66), poolMat);
+    p.rotation.x = -Math.PI/2; p.position.set(x,.05,z); p.renderOrder = 2; scene.add(p);
+  }
+}
+{ // —— 现代方形踏步石
+  for(let i=0;i<5;i++){
+    const s = box(1.5,.08,.75, matConc, (i%2? .35:-.35), .06, 5.0+i*1.35);
+    s.rotation.y = rand(-.08,.08);
+  }
+}
+
+/* —— 万圣节道具 —— */
+const halloweenGroup = new THREE.Group(); scene.add(halloweenGroup);
+let pumpkinLight;
+{
+  const pumpkin = (x,y,z,s)=>{
+    const g = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.SphereGeometry(.17,12,10),
+      new THREE.MeshStandardMaterial({ color:0xd0731f, roughness:.8 }));
+    body.scale.y = .82; body.castShadow = true; g.add(body);
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(.02,.035,.09,6),
+      new THREE.MeshStandardMaterial({ color:0x4a5c32, roughness:1 }));
+    stem.position.y = .16; g.add(stem);
+    const glowMat = new THREE.MeshStandardMaterial({ color:0x5c2800, emissive:0xff8c1e, emissiveIntensity:2.8 });
+    for(const dx of [-.06,.06]){
+      const eye = new THREE.Mesh(new THREE.ConeGeometry(.028,.05,4), glowMat);
+      eye.position.set(dx,.05,.15); g.add(eye);
+    }
+    for(let i=-1;i<=1;i++){
+      const tooth = new THREE.Mesh(new THREE.SphereGeometry(.02,6,5), glowMat);
+      tooth.position.set(i*.045,-.06,.15); g.add(tooth);
+    }
+    g.position.set(x,y,z); g.scale.setScalar(s);
+    halloweenGroup.add(g);
+  };
+  pumpkin(-2.15,.51,3.95,1.15); pumpkin(-1.6,.51,4.25,.85); pumpkin(2.55,.09,5.3,1.3);
+  pumpkinLight = new THREE.PointLight(0xff8a2a, 5, 9, 2);
+  pumpkinLight.position.set(-1.9, .9, 4.3);
+  halloweenGroup.add(pumpkinLight);
+  // 远处墓碑
+  const grave = (x,z,rz)=>{
+    const g = new THREE.Group();
+    const st = new THREE.Mesh(new THREE.BoxGeometry(.55,.75,.12),
+      new THREE.MeshStandardMaterial({ color:0x7d7a74, roughness:1 }));
+    st.position.y=.37; st.castShadow=true; g.add(st);
+    const top = new THREE.Mesh(new THREE.CylinderGeometry(.275,.275,.12,12,1,false,0,Math.PI),
+      st.material);
+    top.rotation.z = Math.PI/2; top.rotation.y = Math.PI/2; top.position.y=.75; g.add(top);
+    g.position.set(x,terrainH(x,z),z); g.rotation.z = rz; g.rotation.y = rand(-.4,.4);
+    halloweenGroup.add(g);
+  };
+  grave(-7.5,6.5,.1); grave(-6.5,7.6,-.14);
+  halloweenGroup.visible = false;
+}
+
+/* —— 圣诞道具 —— */
+const christmasGroup = new THREE.Group(); scene.add(christmasGroup);
+let stringLightGeo, stringLightMat, xmasTreeLight;
+{
+  // 檐下彩灯串
+  const NL = 24;
+  const pos = new Float32Array(NL*3), col = new Float32Array(NL*3);
+  for(let i=0;i<NL;i++){
+    const t = i/(NL-1);
+    pos[i*3]   = lerp(-3.8, 3.8, t);
+    pos[i*3+1] = 4.44 - Math.sin(Math.PI*t)*.2;
+    pos[i*3+2] = 3.82;
+  }
+  stringLightGeo = new THREE.BufferGeometry();
+  stringLightGeo.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  stringLightGeo.setAttribute('color', new THREE.BufferAttribute(col,3));
+  stringLightMat = new THREE.PointsMaterial({
+    map:fireGlowTex, size:.22, transparent:true, depthWrite:false,
+    blending:THREE.AdditiveBlending, vertexColors:true });
+  const sl = new THREE.Points(stringLightGeo, stringLightMat);
+  christmasGroup.add(sl);
+  // 圣诞树
+  const tree = new THREE.Group();
+  const tm = new THREE.MeshStandardMaterial({ color:0x2f4a38, roughness:.9 });
+  for(const [r,h,y] of [[1.05,1.2,1.0],[.8,1.1,1.9],[.52,1.0,2.7]]){
+    const c = new THREE.Mesh(new THREE.ConeGeometry(r,h,9), tm);
+    c.position.y = y; c.castShadow = true; tree.add(c);
+  }
+  const ballCols = [0xff5a5a,0xffd23f,0x4fd06a,0x5aa0ff,0xff8ad0];
+  for(let i=0;i<9;i++){
+    const b = new THREE.Mesh(new THREE.SphereGeometry(.07,8,7),
+      new THREE.MeshStandardMaterial({ color:ballCols[i%5], emissive:ballCols[i%5], emissiveIntensity:.9, roughness:.4 }));
+    const a = i*2.4, r = .55+ (i%3)*.22, y = .9 + (i%4)*.6;
+    b.position.set(Math.cos(a)*r, y, Math.sin(a)*r);
+    tree.add(b);
+  }
+  const star = new THREE.Mesh(new THREE.OctahedronGeometry(.14),
+    new THREE.MeshStandardMaterial({ color:0xffe9a0, emissive:0xffd76a, emissiveIntensity:2.6 }));
+  star.position.y = 3.32; tree.add(star);
+  tree.position.set(-5.2, terrainH(-5.2,4.6), 4.6);
+  christmasGroup.add(tree);
+  xmasTreeLight = new THREE.PointLight(0xffe0b0, 2.5, 12, 2);
+  xmasTreeLight.position.set(-5.2, 2.2, 5.4);
+  christmasGroup.add(xmasTreeLight);
+  // 礼物
+  const gift = (x,z,s,c1)=>{
+    const g = new THREE.Group();
+    const b = new THREE.Mesh(new THREE.BoxGeometry(s,s*.8,s),
+      new THREE.MeshStandardMaterial({ color:c1, roughness:.6 }));
+    b.position.y = s*.4; b.castShadow = true; g.add(b);
+    const rib = new THREE.MeshStandardMaterial({ color:0xf3e5c8, roughness:.5 });
+    const r1 = new THREE.Mesh(new THREE.BoxGeometry(s*1.04,s*.82,s*.18), rib);
+    r1.position.y = s*.4; g.add(r1);
+    const r2 = new THREE.Mesh(new THREE.BoxGeometry(s*.18,s*.82,s*1.04), rib);
+    r2.position.y = s*.4; g.add(r2);
+    g.position.set(x, terrainH(x,z), z); g.rotation.y = rand(-.5,.5);
+    christmasGroup.add(g);
+  };
+  gift(-4.5,5.3,.4,0xb03030); gift(-5.9,5.1,.3,0x2a5aa8); gift(-5.2,3.9,.34,0xc9a23f);
+  // 雪人
+  const sm = new THREE.Group();
+  const white = new THREE.MeshStandardMaterial({ color:0xf6f9fc, roughness:.9 });
+  const b1 = new THREE.Mesh(new THREE.SphereGeometry(.5,12,10), white); b1.position.y=.5;
+  const b2 = new THREE.Mesh(new THREE.SphereGeometry(.36,12,10), white); b2.position.y=1.16;
+  const b3 = new THREE.Mesh(new THREE.SphereGeometry(.27,12,10), white); b3.position.y=1.66;
+  [b1,b2,b3].forEach(b=>{ b.castShadow=true; sm.add(b); });
+  const coal = new THREE.MeshStandardMaterial({ color:0x1c1c1e, roughness:.6 });
+  for(const dx of [-.09,.09]){
+    const e = new THREE.Mesh(new THREE.SphereGeometry(.028,6,5), coal);
+    e.position.set(dx,1.72,.24); sm.add(e);
+  }
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(.03,.14,7),
+    new THREE.MeshStandardMaterial({ color:0xd07b2a, roughness:.7 }));
+  nose.rotation.x = Math.PI/2; nose.position.set(0,1.65,.3); sm.add(nose);
+  const hatM = new THREE.MeshStandardMaterial({ color:0x1c1c1e, roughness:.5 });
+  const brim = new THREE.Mesh(new THREE.CylinderGeometry(.3,.3,.04,12), hatM);
+  brim.position.y = 1.88; sm.add(brim);
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(.19,.2,.28,12), hatM);
+  top.position.y = 2.03; sm.add(top);
+  const scarf = new THREE.Mesh(new THREE.TorusGeometry(.26,.07,8,16),
+    new THREE.MeshStandardMaterial({ color:0xb03030, roughness:.85 }));
+  scarf.rotation.x = Math.PI/2; scarf.position.y = 1.46; sm.add(scarf);
+  for(const s of [-1,1]){
+    const arm = new THREE.Mesh(new THREE.CylinderGeometry(.02,.03,.7,6),
+      new THREE.MeshStandardMaterial({ color:0x5c4632, roughness:1 }));
+    arm.rotation.z = s*1.0; arm.position.set(s*.5,1.25,0); sm.add(arm);
+  }
+  sm.position.set(5.0, terrainH(5.0,4.8), 4.8);
+  christmasGroup.add(sm);
+  christmasGroup.visible = false;
+}
+// 平台雪层
+{
+  const ds = new THREE.Mesh(new THREE.BoxGeometry(7.7,.05,2.1), matSnow);
+  ds.position.set(0,.49,CD/2+1.02); ds.receiveShadow = true;
+  snowGroup.add(ds);
+}
+snowGroup.visible = false;
+
+/* ============================================================
+   9. 动态元素:炊烟 / 萤火虫 / 飞鸟 / 季节粒子
+============================================================ */
+const smokeSprites = [];
+for(let i=0;i<15;i++){
+  const m = new THREE.SpriteMaterial({ map:smokeTex, transparent:true, opacity:0,
+    depthWrite:false, rotation: rand(Math.PI*2) });
+  const s = new THREE.Sprite(m);
+  s.userData.phase = i/15;
+  scene.add(s); smokeSprites.push(s);
+}
+
+const FIREFLY_N = 90;
+const fireflies = { base:[], geo:null, mat:null };
+{
+  const pos = new Float32Array(FIREFLY_N*3), col = new Float32Array(FIREFLY_N*3);
+  for(let i=0;i<FIREFLY_N;i++){
+    const a = rand(Math.PI*2), r = 5 + Math.sqrt(rng())*14;
+    const x = Math.cos(a)*r, z = Math.sin(a)*r;
+    fireflies.base.push({ x, y: terrainH(x,z)+rand(.5,3.2), z, ph: rand(10) });
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  g.setAttribute('color', new THREE.BufferAttribute(col,3));
+  fireflies.geo = g;
+  fireflies.mat = new THREE.PointsMaterial({
+    map:fireGlowTex, size:.55, transparent:true, depthWrite:false,
+    blending:THREE.AdditiveBlending, vertexColors:true, sizeAttenuation:true, opacity:.85 });
+  scene.add(new THREE.Points(g, fireflies.mat));
+}
+
+const birds = [];
+{
+  const wingMat = new THREE.MeshBasicMaterial({ color:0x20262e, side:THREE.DoubleSide });
+  for(let i=0;i<5;i++){
+    const b = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.ConeGeometry(.12,.6,5), wingMat);
+    body.rotation.x = Math.PI/2; b.add(body);
+    const wL = new THREE.Mesh(new THREE.PlaneGeometry(.85,.22), wingMat);
+    wL.position.x = -.42; b.add(wL);
+    const wR = new THREE.Mesh(new THREE.PlaneGeometry(.85,.22), wingMat);
+    wR.position.x = .42; b.add(wR);
+    b.scale.setScalar(1.5);
+    b.userData = { off: i*.14, wl:wL, wr:wR, r: rand(46,58), h: rand(23,30), sp: rand(.04,.055) };
+    scene.add(b); birds.push(b);
+  }
+}
+
+// 季节粒子(花瓣/落叶/雪/微尘)
+const PART_N = 420;
+const partState = { mode:null, speeds:new Float32Array(PART_N), phase:new Float32Array(PART_N) };
+const partGeo = new THREE.BufferGeometry();
+{
+  const pos = new Float32Array(PART_N*3);
+  for(let i=0;i<PART_N;i++){
+    const a = rand(Math.PI*2), r = 3 + Math.sqrt(rng())*24;
+    pos[i*3] = Math.cos(a)*r;
+    pos[i*3+1] = rand(12);
+    pos[i*3+2] = Math.sin(a)*r;
+    partState.speeds[i] = rand(.7,1.3);
+    partState.phase[i] = rand(10);
+  }
+  partGeo.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  partGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(PART_N*3),3));
+}
+const partMat = new THREE.PointsMaterial({
+  map:fireGlowTex, size:.2, transparent:true, depthWrite:false,
+  blending:THREE.AdditiveBlending, vertexColors:true, opacity:.8 });
+scene.add(new THREE.Points(partGeo, partMat));
+
+const PARTICLES = {
+  spring: { colors:[0xf2c4d0,0xf7dde4,0xf5e07a], size:.24, speed:.32, sway:.5, opacity:.75 },
+  summer: { colors:[0xffe6ae,0xfff3cf],          size:.15, speed:.1,  sway:.25, opacity:.28 },
+  autumn: { colors:[0xd98a3f,0xb5652f,0xc9a23f], size:.2,  speed:.5,  sway:.4, opacity:.85 },
+  winter: { colors:[0xffffff,0xe8f1fa],          size:.22, speed:.42, sway:.3, opacity:.9  },
+  halloween: { colors:[0xb48ad8,0x8a7fb8],       size:.18, speed:.2,  sway:.4, opacity:.3  },
+};
+function setParticles(mode){
+  const cfg = PARTICLES[mode] || PARTICLES.autumn;
+  partState.mode = cfg;
+  partMat.size = cfg.size; partMat.opacity = cfg.opacity;
+  const col = partGeo.attributes.color, c = new THREE.Color();
+  for(let i=0;i<PART_N;i++){
+    c.set(cfg.colors[Math.floor(rng()*cfg.colors.length)]);
+    col.setXYZ(i, c.r, c.g, c.b);
+  }
+  col.needsUpdate = true;
+}
+setParticles('autumn');
+
+/* —— 地面薄雾 —— */
+const mistSprites = [];
+for(let i=0;i<10;i++){
+  const a = rand(Math.PI*2), r = rand(20,48);
+  const x0 = Math.cos(a)*r, z0 = Math.sin(a)*r;
+  const o = rand(.05,.1);
+  const m = new THREE.SpriteMaterial({ map:smokeTex, color:0xd8c8ae,
+    transparent:true, opacity:o, depthWrite:false,
+    blending:THREE.AdditiveBlending, fog:false });
+  const s = new THREE.Sprite(m);
+  s.position.set(x0, rand(.8,2.4), z0);
+  s.scale.set(rand(12,26), rand(5,10), 1);
+  s.userData = { x0, z0, ph: rand(10), o };
+  scene.add(s); mistSprites.push(s);
+}
+
+/* ============================================================
+   10. 季节 / 主题配置与切换
+============================================================ */
+const state = { season:'autumn', theme:'none' };
+let curLightP = null;   // 当前生效的季节/主题光照参数(供亮度与天气叠加)
+
+const SEASONS = {
+  spring: {
+    label:'春',
+    light:{ top:0x6f9fd8, horizon:0xf3e0cf, sunC:0xffd9a8, sunI:1.9, fillC:0xa8c4e0, fillI:.42,
+            hemiI:.62, ambI:.14, fogC:0xc9ccc8, fogD:.009, exp:1.0, sunPos:[-38,15,-14],
+            spriteC:0xffe2b0, spriteS:60, spriteO:.9, stars:.25, mistC:0xdce4e6 },
+    particles:'spring', firefly:.4, flowers:true, snow:false, window:0xffc27a,
+    captions:['春风拂过 · 新绿爬满枝头','花开有声 · 山野刚刚苏醒','细雨初歇 · 空气里有青草味','檐下光暖 · 春日迟迟'],
+  },
+  summer: {
+    label:'夏',
+    light:{ top:0x4a7fc4, horizon:0xf3dcb4, sunC:0xffd396, sunI:2.0, fillC:0x8fa8c8, fillI:.4,
+            hemiI:.62, ambI:.14, fogC:0xbcc2b8, fogD:.0085, exp:1.0, sunPos:[-38,15,-14],
+            spriteC:0xffd89a, spriteS:64, spriteO:.92, stars:.2, mistC:0xd8d2ba },
+    particles:'summer', firefly:.95, flowers:true, snow:false, window:0xffb066,
+    captions:['仲夏夜之梦 · 萤火如星','晚风蝉鸣 · 树影摇晃','暮色迟迟 · 绿意正浓','光斑洒落 · 夏夜微醺'],
+  },
+  autumn: {
+    label:'秋',
+    light:{ top:0x33506e, horizon:0xd0a984, sunC:0xffab68, sunI:2.2, fillC:0x93a8c8, fillI:.48,
+            hemiI:.6, ambI:.14, fogC:0xb4a493, fogD:.0112, exp:1.03, sunPos:[-38,16,-14],
+            spriteC:0xffce90, spriteS:70, spriteO:.92, stars:.5, mistC:0xd8c8ae },
+    particles:'autumn', firefly:.85, flowers:true, snow:false, window:0xffb066,
+    captions:['暮色四合 · 林深处的灯火','炊烟升起 · 晚风掠过松梢','石径蜿蜒 · 通往归人的方向','萤火明灭 · 夜色正温柔','推门即家 · 山野自此安眠'],
+  },
+  winter: {
+    label:'冬',
+    light:{ top:0x49607e, horizon:0xdcd2c2, sunC:0xffd8a0, sunI:1.55, fillC:0xb0c2d8, fillI:.58,
+            hemiI:.68, ambI:.16, fogC:0xc0c8ce, fogD:.012, exp:1.0, sunPos:[-38,18,-14],
+            spriteC:0xf8e2b4, spriteS:52, spriteO:.85, stars:.55, mistC:0xdfe6f0 },
+    particles:'winter', firefly:0, flowers:false, snow:true, window:0xffc06a,
+    captions:['炉火正旺 · 雪落无声','万籁俱寂 · 唯有雪光','围炉煮茶 · 冬夜温柔','踏雪归来 · 灯火可亲'],
+  },
+};
+const THEMES = {
+  none: { label:'无' },
+  halloween: {
+    label:'万圣节',
+    light:{ top:0x1c2337, horizon:0x4e3f55, sunC:0xa8bce0, sunI:.9, fillC:0x7a6a9a, fillI:.5,
+            hemiI:.48, ambI:.13, fogC:0x403a49, fogD:.019, exp:.98, sunPos:[-18,30,-16],
+            spriteC:0xcfd8f0, spriteS:34, spriteO:.85, stars:.9, mistC:0x8d8399 },
+    particles:'halloween', window:0xff7a2e,
+    captions:['南瓜灯亮起 · 幽灵出没','蝙蝠掠过月色 · 今夜请小心','不给糖 · 就捣蛋','夜雾弥漫 · 森林在低语'],
+  },
+  christmas: {
+    label:'圣诞节',
+    light:{ top:0x243250, horizon:0xccd6e6, sunC:0xd5e2f5, sunI:1.2, fillC:0xa8bcd8, fillI:.55,
+            hemiI:.64, ambI:.15, fogC:0xb9c4d4, fogD:.0125, exp:1.0, sunPos:[-26,24,-14],
+            spriteC:0xe4ecff, spriteS:40, spriteO:.9, stars:.85, mistC:0xdde5f0 },
+    particles:'winter', window:0xffc06a, snow:true,
+    captions:['铃儿响叮当 · 圣诞快乐','炉火与彩灯 · 温暖整个冬夜','雪花飘落 · 愿你所愿','槲寄生下 · 平安夜安好'],
+  },
+};
+
+function setLighting(p){
+  skyMat.uniforms.uTop.value.set(p.top).convertSRGBToLinear();
+  skyMat.uniforms.uHorizon.value.set(p.horizon).convertSRGBToLinear();
+  skyMat.uniforms.uSun.value.set(p.spriteC).convertSRGBToLinear();
+  skyMat.uniforms.uFog.value.set(p.fogC).convertSRGBToLinear();
+  scene.fog.color.set(p.fogC);
+  scene.fog.density = p.fogD;
+  sun.color.set(p.sunC); sun.intensity = p.sunI;
+  sun.position.set(...p.sunPos);
+  sunDir.copy(sun.position).normalize();
+  skyMat.uniforms.uSunDir.value.copy(sunDir);
+  sunSprite.position.copy(sunDir).multiplyScalar(400);
+  sunHalo.position.copy(sunSprite.position);
+  fill.color.set(p.fillC); fill.intensity = p.fillI;
+  hemi.intensity = p.hemiI; amb.intensity = p.ambI;
+  renderer.toneMappingExposure = p.exp;
+  sunSprite.material.color.set(p.spriteC);
+  sunSprite.material.opacity = p.spriteO;
+  sunSprite.scale.setScalar(p.spriteS);
+  sunHalo.material.color.set(p.spriteC);
+  sunHalo.material.opacity = p.spriteO*.42;
+  sunHalo.scale.setScalar(p.spriteS*2.7);
+  starsMat.opacity = p.stars;
+  for(const s of mistSprites) s.material.color.set(p.mistC);
+  blBase = { exp: p.exp, ambI: p.ambI };
+  curLightP = p;
+  applyWeather();   // 天气叠加(雾/天光/太阳/星/薄雾)
+  applyBright();
+}
+function applyWindowGlow(hex){
+  matPane.emissive.set(hex);
+  const c = new THREE.Color(hex);
+  for(const l of winLights) l.color.set(hex);
+  for(const m of glowPoolMats) m.color.copy(c).lerp(new THREE.Color(0xffffff), .1);
+}
+
+let birdMode = 'bird';
+function applyLook(skipCaptions){
+  const S = SEASONS[state.season], T = THEMES[state.theme];
+  setLighting(T.light || S.light);
+  recolorGround(state.season);
+  recolorVegetation(state.season);
+  planterFlowers.visible = S.flowers && state.theme!=='halloween';
+  fireflies.mat.opacity = S.firefly;
+  fireflies.mat.visible = S.firefly > 0;
+  snowGroup.visible = S.snow || !!T.snow || curWeather==='snow';
+  halloweenGroup.visible = state.theme==='halloween';
+  christmasGroup.visible = state.theme==='christmas';
+  birdMode = state.theme==='halloween' ? 'bat' : 'bird';
+  applyWindowGlow(T.window || S.window);
+  document.getElementById('titleSub').textContent = 'FOREST CABIN · ' + (T.label!=='无'? T.label : S.label);
+  if (!skipCaptions) restartCaptions(T.captions || S.captions);
+  if (window.__audioSetTheme) window.__audioSetTheme(state.theme);
+  if (typeof updateStatus === 'function') updateStatus();
+  if (typeof syncUrl === 'function') syncUrl();
+}
+const fadeEl = document.getElementById('fade');
+function switchLook(mutate){
+  fadeEl.classList.add('on');
+  setTimeout(()=>{
+    mutate();
+    applyLook();
+    setTimeout(()=>fadeEl.classList.remove('on'), 80);
+  }, 440);
+}
+
+/* ============================================================
+   10.5 天气系统:晴 / 雨 / 雷雨 / 雪 / 雾
+============================================================ */
+const WEATHERS = {
+  clear: { label:'晴',   fogMul:1.00, topMul:1.00, horMul:1.00, sunMul:1.00, starMul:1.00,
+           mistMul:1.00, gray:0,    rain:0, snow:0, windX:0,   rainA:0,   windA:.35, bolt:0 },
+  rain:  { label:'雨',   fogMul:1.55, topMul:.72,  horMul:.84,  sunMul:.38, starMul:.85,
+           mistMul:1.70, gray:.55,  rain:1, snow:0, windX:1.6, rainA:.55, windA:.80, bolt:0 },
+  storm: { label:'雷雨', fogMul:1.85, topMul:.56,  horMul:.72,  sunMul:.24, starMul:1.00,
+           mistMul:2.00, gray:.75,  rain:1, snow:0, windX:3.2, rainA:.72, windA:1.20, bolt:1 },
+  snow:  { label:'雪',   fogMul:1.45, topMul:.92,  horMul:.98,  sunMul:.62, starMul:.75,
+           mistMul:1.45, gray:.38,  rain:0, snow:1, windX:.7,  rainA:0,   windA:.50, bolt:0 },
+  mist:  { label:'雾',   fogMul:2.30, topMul:.96,  horMul:1.00, sunMul:.55, starMul:.55,
+           mistMul:2.60, gray:.50,  rain:0, snow:0, windX:0,   rainA:0,   windA:.25, bolt:0 },
+};
+const WEATHER_KEYS = ['clear','rain','storm','snow','mist'];
+let curWeather = 'clear';
+let boltT = -1, nextBolt = 5;   // 闪电序列时间轴与下次触发时刻
+
+// 雨丝贴图
+const rainTex = makeTex(8, 32, (g,w,h)=>{
+  const gr = g.createLinearGradient(0,0,0,h);
+  gr.addColorStop(0,  'rgba(200,226,246,0)');
+  gr.addColorStop(.45,'rgba(214,234,250,.9)');
+  gr.addColorStop(1,  'rgba(200,226,246,0)');
+  g.fillStyle = gr; g.fillRect(w*.5-1.1, 0, 2.2, h);
+});
+// 雪花贴图(柔和白点,不用加法混合,避免变成暖色光斑)
+const snowTexW = makeTex(32, 32, (g,w,h)=>{
+  const gr = g.createRadialGradient(w/2,h/2,0, w/2,h/2,w/2);
+  gr.addColorStop(0,  'rgba(255,255,255,1)');
+  gr.addColorStop(.42,'rgba(240,247,255,.92)');
+  gr.addColorStop(1,  'rgba(222,236,250,0)');
+  g.fillStyle = gr; g.fillRect(0,0,w,h);
+});
+
+// 雨雪共用一套粒子(按天气切换材质与下落参数)
+const WN = PERF.rainN;
+const wGeo = new THREE.BufferGeometry();
+const wVel = new Float32Array(WN), wPh = new Float32Array(WN);
+{
+  const pos = new Float32Array(WN*3);
+  for(let i=0;i<WN;i++){
+    pos[i*3]   = rand(-32,32);
+    pos[i*3+1] = rand(0,26);
+    pos[i*3+2] = rand(-32,32);
+    wVel[i] = rand(.7,1.35);
+    wPh[i]  = rand(10);
+  }
+  wGeo.setAttribute('position', new THREE.BufferAttribute(pos,3));
+}
+const rainMat = new THREE.PointsMaterial({ map:rainTex, size:.44, color:0xcfe0f0,
+  transparent:true, opacity:.5, depthWrite:false, sizeAttenuation:true, fog:false });
+const snowMatW = new THREE.PointsMaterial({ map:snowTexW, size:.34, color:0xf2f8ff,
+  transparent:true, opacity:.92, depthWrite:false, sizeAttenuation:true, fog:false });
+const weatherPoints = new THREE.Points(wGeo, rainMat);
+weatherPoints.frustumCulled = false; weatherPoints.visible = false;
+scene.add(weatherPoints);
+
+const GRAY_SKY = new THREE.Color(0x7e8894);
+function applyWeather(){
+  const W = WEATHERS[curWeather];
+  weatherPoints.visible = W.rain > 0 || W.snow > 0;
+  weatherPoints.material = W.snow > 0 ? snowMatW : rainMat;
+  if (curLightP){
+    const p = curLightP;
+    scene.fog.density = p.fogD * W.fogMul;
+    const fc = new THREE.Color(p.fogC).lerp(GRAY_SKY, W.gray);
+    scene.fog.color.copy(fc);
+    skyMat.uniforms.uFog.value.copy(fc).convertSRGBToLinear();
+    const topC = new THREE.Color(p.top).lerp(GRAY_SKY, W.gray * .95);
+    const horC = new THREE.Color(p.horizon).lerp(GRAY_SKY, W.gray * .80);
+    skyMat.uniforms.uTop.value.copy(topC).convertSRGBToLinear().multiplyScalar(W.topMul);
+    skyMat.uniforms.uHorizon.value.copy(horC).convertSRGBToLinear().multiplyScalar(W.horMul);
+    sun.intensity = p.sunI * W.sunMul;
+    sunSprite.material.opacity = p.spriteO * Math.max(.15, W.sunMul);
+    starsMat.opacity = p.stars * W.starMul;
+    for(const s of mistSprites) s.material.opacity = s.userData.o * W.mistMul;
+  }
+  // 雪天把季节粒子统一成雪;其余天气恢复季节/主题粒子
+  setParticles(W.snow > 0 ? 'winter' : (THEMES[state.theme].particles || SEASONS[state.season].particles));
+  if (window.__audioWeather) window.__audioWeather(curWeather);
+}
+function setWeather(name){
+  if (!WEATHERS[name] || name === curWeather) { return; }
+  curWeather = name;
+  const btnW = document.getElementById('btnWeather');
+  if (btnW) btnW.textContent = '天气 · ' + WEATHERS[name].label;
+  applyWeather();
+  // 天气为雪时屋顶/地面也要积雪
+  snowGroup.visible = SEASONS[state.season].snow || !!THEMES[state.theme].snow || name === 'snow';
+  if (typeof updateStatus === 'function') updateStatus();
+  if (typeof syncUrl === 'function') syncUrl();
+}
+
+/* ============================================================
+   11. 后期
+============================================================ */
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight), .45, .7, .9);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
+const gradePass = new ShaderPass({
+  uniforms:{ tDiffuse:{value:null}, uTime:{value:0} },
+  vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+  fragmentShader:`
+    uniform sampler2D tDiffuse; uniform float uTime; varying vec2 vUv;
+    float rnd(vec2 p){ return fract(sin(dot(p, vec2(12.9898,78.233)))*43758.5453); }
+    void main(){
+      vec4 c = texture2D(tDiffuse, vUv);
+      float l = dot(c.rgb, vec3(.299,.587,.114));
+      c.rgb = mix(vec3(l), c.rgb, 1.12);
+      c.rgb *= mix(vec3(.93,1.0,1.07), vec3(1.06,1.0,.92), smoothstep(.12,.85,l));
+      float d = distance(vUv, vec2(.5));
+      c.rgb *= 1.0 - .34*smoothstep(.45,.98,d);
+      c.rgb += (rnd(vUv*vec2(1613.,1931.)+fract(uTime)*7.)-.5)*.04;
+      gl_FragColor = c;
+    }`
+});
+composer.addPass(gradePass);
+
+/* ============================================================
+   12. 相机编导
+============================================================ */
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.dampingFactor = .06;
+controls.minDistance = 7; controls.maxDistance = 26;
+controls.minPolarAngle = 1.08; controls.maxPolarAngle = 1.52;
+controls.target.set(0, 2.15, 0);
+controls.autoRotate = true; controls.autoRotateSpeed = .4;
+
+let cruise = true, interacting = false, lastAct = performance.now();
+let introT = 0; const INTRO = 5.2;
+const introFrom = new THREE.Vector3(27, 11, 33), introTo = new THREE.Vector3(15, 5.6, 18);
+controls.addEventListener('start', ()=>{ interacting = true; controls.autoRotate = false; });
+controls.addEventListener('end',   ()=>{ interacting = false; lastAct = performance.now(); });
+
+const btnCruise = document.getElementById('btnCruise');
+const btnCine   = document.getElementById('btnCine');
+btnCruise.onclick = ()=>{
+  cruise = !cruise;
+  btnCruise.textContent = cruise ? '巡航 · 开' : '巡航 · 关';
+  btnCruise.classList.toggle('off', !cruise);
+};
+btnCine.onclick = ()=>{
+  const on = !document.body.classList.contains('cine');
+  document.body.classList.toggle('cine', on);
+  btnCine.textContent = on ? '画幅 · 开' : '画幅 · 关';
+  btnCine.classList.toggle('off', !on);
+};
+
+// 季节 / 主题按钮
+const SEASON_KEYS = ['spring','summer','autumn','winter'];
+const SEASON_NAMES = { spring:'春', summer:'夏', autumn:'秋', winter:'冬' };
+const THEME_KEYS = ['none','halloween','christmas'];
+const THEME_NAMES = { none:'无', halloween:'万圣节', christmas:'圣诞节' };
+const btnSeason = document.getElementById('btnSeason');
+const btnTheme  = document.getElementById('btnTheme');
+btnSeason.onclick = ()=>{
+  switchLook(()=>{
+    state.season = SEASON_KEYS[(SEASON_KEYS.indexOf(state.season)+1) % SEASON_KEYS.length];
+    btnSeason.textContent = '季节 · ' + SEASON_NAMES[state.season];
+  });
+};
+btnTheme.onclick = ()=>{
+  switchLook(()=>{
+    state.theme = THEME_KEYS[(THEME_KEYS.indexOf(state.theme)+1) % THEME_KEYS.length];
+    btnTheme.textContent = '主题 · ' + THEME_NAMES[state.theme];
+  });
+};
+
+/* ============================================================
+   11.5 亮度能量条:曝光 / 辉光 / 暗部补偿联动
+============================================================ */
+const BRIGHT_STEPS = 10;
+const BRIGHT_LUT = {
+  exp:   [ .52, .64, .76, .88, .97, 1.0, 1.12, 1.25, 1.4, 1.58 ],
+  amb:   [ .07, .05, .03, .0,  .0,  .0,  .02,  .05,  .09, .14 ],
+  bloom: [ .80, .70, .62, .54, .48, .45, .40,  .36,  .32, .28 ],
+};
+let blBase = { exp: 1.03, ambI: .16 };
+const blTrack = document.getElementById('blTrack');
+const blVal   = document.getElementById('blVal');
+const blCells = [];
+function blLoad(){
+  try { return clamp(parseInt(localStorage.getItem('cabin_bright') || '', 10) || 6, 1, BRIGHT_STEPS); }
+  catch(_){ return 6; }
+}
+function blSave(v){ try { localStorage.setItem('cabin_bright', String(v)); } catch(_){} }
+let brightLevel = blLoad();
+
+for(let i=0;i<BRIGHT_STEPS;i++){
+  const c = document.createElement('div');
+  c.className = 'bl-cell';
+  blTrack.appendChild(c); blCells.push(c);
+}
+let exposureBase = 1.03;
+function applyBright(){
+  const i = brightLevel - 1;
+  exposureBase = blBase.exp * BRIGHT_LUT.exp[i];
+  renderer.toneMappingExposure = exposureBase;
+  amb.intensity = blBase.ambI + BRIGHT_LUT.amb[i];
+  bloom.strength = BRIGHT_LUT.bloom[i];
+  blCells.forEach((c,k)=>c.classList.toggle('lit', k < brightLevel));
+  blVal.textContent = brightLevel*10 + '%';
+  blSave(brightLevel);
+  if (typeof updateStatus === 'function') updateStatus();
+  if (typeof syncUrl === 'function') syncUrl();
+}
+function brightFromPointer(e){
+  const r = blTrack.getBoundingClientRect();
+  const frac = 1 - clamp((e.clientY - r.top) / r.height, 0, 1);
+  brightLevel = clamp(Math.round(frac * BRIGHT_STEPS) || 1, 1, BRIGHT_STEPS);
+  applyBright();
+}
+let blDrag = false;
+blTrack.addEventListener('pointerdown', (e)=>{
+  blDrag = true;
+  try { blTrack.setPointerCapture(e.pointerId); } catch(_){}
+  brightFromPointer(e);
+});
+blTrack.addEventListener('pointermove', (e)=>{ if (blDrag) brightFromPointer(e); });
+addEventListener('pointerup',     ()=>{ blDrag = false; });
+addEventListener('pointercancel', ()=>{ blDrag = false; });
+blTrack.addEventListener('wheel', (e)=>{
+  e.preventDefault();
+  brightLevel = clamp(brightLevel + (e.deltaY < 0 ? 1 : -1), 1, BRIGHT_STEPS);
+  applyBright();
+}, { passive:false });
+addEventListener('keydown', (e)=>{
+  if (e.key === '[' || e.key === '{'){ brightLevel = clamp(brightLevel - 1, 1, BRIGHT_STEPS); applyBright(); }
+  else if (e.key === ']' || e.key === '}'){ brightLevel = clamp(brightLevel + 1, 1, BRIGHT_STEPS); applyBright(); }
+});
+applyBright();
+window.__bright = ()=>({ level: brightLevel, exposure: +renderer.toneMappingExposure.toFixed(3),
+                         amb: +amb.intensity.toFixed(3), bloom: +bloom.strength.toFixed(3) });
+// 调试句柄:便于外部检查场景状态(相机/材质/灯光数组)
+window.__cabin = { renderer, scene, camera, controls, matPane, winLights, candleLights, windowPanes, THREE };
+
+/* ============================================================
+   11.6 状态行 / 分享链接 / 操作说明 / 快捷键
+============================================================ */
+const helpEl  = document.getElementById('help');
+const flashEl = document.getElementById('flash');
+let toastTimer = null;
+
+function toast(msg){
+  const el = document.getElementById('toast');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove('show'), 2000);
+}
+function updateStatus(){
+  const el = document.getElementById('statusText');
+  if (!el) return;
+  el.textContent =
+    `${SEASONS[state.season].label} · ${WEATHERS[curWeather].label} · ${brightLevel*10}%`;
+}
+function syncUrl(){
+  try{
+    const p = new URLSearchParams({ s:state.season, t:state.theme, w:curWeather, b:String(brightLevel) });
+    history.replaceState(null, '', location.pathname + '?' + p.toString());
+  }catch(_){}
+}
+function shareLink(){
+  const p = new URLSearchParams({ s:state.season, t:state.theme, w:curWeather, b:String(brightLevel) });
+  const url = location.origin + location.pathname + '?' + p.toString();
+  const ok = ()=>toast('链接已复制 · 打开即是当前画面');
+  const fail = ()=>toast(url);
+  try{
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(ok, fail);
+    else fail();
+  }catch(_){ fail(); }
+}
+function readUrl(){
+  const p = new URLSearchParams(location.search);
+  const s = p.get('s'), t = p.get('t'), w = p.get('w'), b = parseInt(p.get('b') || '', 10);
+  if (s && SEASONS[s]) state.season = s;
+  if (t && THEME_KEYS.indexOf(t) >= 0) state.theme = t;
+  if (w && WEATHERS[w]) curWeather = w;
+  if (b >= 1 && b <= BRIGHT_STEPS) brightLevel = b;
+  const bs = document.getElementById('btnSeason');  if (bs) bs.textContent = '季节 · ' + SEASONS[state.season].label;
+  const bt = document.getElementById('btnTheme');   if (bt) bt.textContent = '主题 · ' + THEME_NAMES[state.theme];
+  const bw = document.getElementById('btnWeather'); if (bw) bw.textContent = '天气 · ' + WEATHERS[curWeather].label;
+  blSave(brightLevel);
+}
+function toggleHelp(v){
+  if (!helpEl) return;
+  const on = (v === undefined) ? !helpEl.classList.contains('show') : v;
+  helpEl.classList.toggle('show', on);
+}
+function setSeason(name){
+  if (!SEASONS[name] || name === state.season) return;
+  switchLook(()=>{ state.season = name; });
+  const b = document.getElementById('btnSeason');
+  if (b) b.textContent = '季节 · ' + SEASONS[name].label;
+  updateStatus(); syncUrl();
+}
+
+const btnWeatherEl = document.getElementById('btnWeather');
+btnWeatherEl.onclick = ()=>{
+  const i = WEATHER_KEYS.indexOf(curWeather);
+  setWeather(WEATHER_KEYS[(i+1) % WEATHER_KEYS.length]);
+};
+const btnShareEl = document.getElementById('btnShare');
+btnShareEl.onclick = shareLink;
+helpEl.addEventListener('click', ()=>toggleHelp(false));
+
+addEventListener('keydown', (e)=>{
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const tag = (e.target && e.target.tagName) || '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+  const k = e.key.toLowerCase();
+  if (e.key === '?' || (k === '/' && e.shiftKey)){ e.preventDefault(); toggleHelp(); return; }
+  if (e.key === 'Escape'){ toggleHelp(false); return; }
+  if (k === 'w'){
+    const i = WEATHER_KEYS.indexOf(curWeather);
+    setWeather(WEATHER_KEYS[(i+1) % WEATHER_KEYS.length]);
+  } else if (k === 't'){ document.getElementById('btnTheme').click(); }
+  else if (k === 'c'){ document.getElementById('btnCruise').click(); }
+  else if (k === 'f'){ document.getElementById('btnCine').click(); }
+  else if (k === 'm'){ document.getElementById('btnMusic').click(); }
+  else if (k === 'p'){ document.getElementById('btnShot').click(); }
+  else if (e.key === '1'){ setSeason('spring'); }
+  else if (e.key === '2'){ setSeason('summer'); }
+  else if (e.key === '3'){ setSeason('autumn'); }
+  else if (e.key === '4'){ setSeason('winter'); }
+});
+
+// 应用初始状态(URL 优先)+ 首次 1 秒后提示可打开操作说明
+readUrl();
+applyLook(true);
+applyBright();
+setTimeout(()=>{ if (!sessionStorage.getItem('cabin_hint')) {
+  toast('按 ? 查看全部快捷键'); try{ sessionStorage.setItem('cabin_hint','1'); }catch(_){}
+} }, 6200);
+
+/* —— 截图:保存当前画面 —— */
+const btnShot = document.getElementById('btnShot');
+btnShot.onclick = ()=>{
+  composer.render();
+  const a = document.createElement('a');
+  a.download = '森林小屋-' + new Date().toISOString().slice(0,19).replace(/[:T]/g,'-') + '.jpg';
+  a.href = renderer.domElement.toDataURL('image/jpeg', .92);
+  a.click();
+  btnShot.textContent = '已保存';
+  setTimeout(()=>{ btnShot.textContent = '截图'; }, 1600);
+};
+
+let hudTimer;
+function wakeHud(){
+  document.body.classList.remove('idle');
+  clearTimeout(hudTimer);
+  hudTimer = setTimeout(()=>document.body.classList.add('idle'), 5000);
+}
+addEventListener('mousemove', wakeHud); wakeHud();
+
+setTimeout(()=>document.getElementById('title').classList.add('show'), 700);
+setTimeout(()=>document.getElementById('title').classList.remove('show'), 4600);
+
+/* ============================================================
+   13. 文字滑条
+============================================================ */
+let CAP_LINES = SEASONS.autumn.captions;
+const CAP_MS = 7000;
+const capRoot = document.getElementById('caption');
+const capLine = document.getElementById('capLine');
+const capDots = document.getElementById('capDots');
+let capIdx = 0, capTimer = null;
+
+function buildDots(){
+  capDots.innerHTML = '';
+  CAP_LINES.forEach((_, i)=>{
+    const d = document.createElement('button');
+    d.className = 'cap-dot';
+    d.setAttribute('aria-label', `第${i+1}句`);
+    const f = document.createElement('span'); f.className = 'fill';
+    d.appendChild(f);
+    d.addEventListener('click', ()=>capGo(i, true));
+    capDots.appendChild(d);
+  });
+}
+const capDotEls = () => [...capDots.children];
+
+function capFill(dot){
+  const f = dot.querySelector('.fill');
+  f.style.animation = 'none'; void f.offsetWidth;
+  f.style.animation = `capfill ${CAP_MS}ms linear forwards`;
+}
+function capShow(i){
+  const dots = capDotEls();
+  dots.forEach((d,k)=>d.classList.toggle('active', k===i));
+  if (dots[i]) capFill(dots[i]);
+  capLine.style.animation = 'none';
+  void capLine.offsetWidth;
+  capLine.textContent = CAP_LINES[i];
+  capLine.style.animation = '';
+}
+function capNext(){ capIdx = (capIdx+1) % CAP_LINES.length; capShow(capIdx); }
+function capGo(i){
+  if (i === capIdx && capLine.textContent) return;
+  capIdx = i; capShow(i);
+  if (capTimer){ clearInterval(capTimer); capTimer = setInterval(capNext, CAP_MS); }
+}
+function restartCaptions(lines){
+  CAP_LINES = lines;
+  buildDots();
+  capIdx = 0;
+  capShow(0);
+  if (capTimer) clearInterval(capTimer);
+  capTimer = setInterval(capNext, CAP_MS);
+}
+setTimeout(()=>{
+  capRoot.classList.add('show');
+  restartCaptions(CAP_LINES);
+}, 5400);
+
+/* ============================================================
+   14. 环境音乐(Web Audio 程序化合成)
+============================================================ */
+const btnMusic = document.getElementById('btnMusic');
+let musicOn = true, musicStarted = false, audio = null;
+
+function midiHz(m){ return 440 * Math.pow(2, (m - 69) / 12); }
+const CHORDS_WARM = [
+  { bass: 41, pad: [53, 57, 60, 64] },
+  { bass: 40, pad: [52, 55, 60, 64] },
+  { bass: 45, pad: [48, 52, 55, 64] },
+  { bass: 43, pad: [50, 55, 59, 64] },
+];
+const CHORDS_SPOOKY = [
+  { bass: 45, pad: [52, 55, 60, 64] },
+  { bass: 41, pad: [48, 52, 57, 60] },
+  { bass: 40, pad: [52, 55, 59, 64] },
+  { bass: 43, pad: [50, 55, 58, 62] },
+];
+const MUSIC_MODES = {
+  none:       { chords: CHORDS_WARM,   pluck:[1500,4100], bell:[16000,36000] },
+  halloween:  { chords: CHORDS_SPOOKY, pluck:[2200,5200], bell:[20000,40000] },
+  christmas:  { chords: CHORDS_WARM,   pluck:[600,1500],  bell:[3500,9000]  },
+};
+
+function buildAudio(){
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const master = ctx.createGain(); master.gain.value = 0; master.connect(ctx.destination);
+  const bus = ctx.createGain();
+  const dry = ctx.createGain(); dry.gain.value = .8;
+  const conv = ctx.createConvolver();
+  {
+    const dur = 3.0, rate = ctx.sampleRate, len = rate * dur | 0;
+    const ir = ctx.createBuffer(2, len, rate);
+    for(let ch=0; ch<2; ch++){
+      const d = ir.getChannelData(ch);
+      for(let i=0;i<len;i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/len, 2.6);
+    }
+    conv.buffer = ir;
+  }
+  const wet = ctx.createGain(); wet.gain.value = .38;
+  bus.connect(dry); dry.connect(master);
+  bus.connect(conv); conv.connect(wet); wet.connect(master);
+
+  {
+    const len = ctx.sampleRate * 4 | 0;
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0); let last = 0;
+    for(let i=0;i<len;i++){ last = (last + .02*(Math.random()*2-1)) / 1.02; d[i] = last*3.2; }
+    const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
+    const f = ctx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=420; f.Q.value=.55;
+    const g = ctx.createGain(); g.gain.value=.045;
+    const lfo = ctx.createOscillator(); lfo.frequency.value=.07;
+    const lg = ctx.createGain(); lg.gain.value=.028;
+    lfo.connect(lg); lg.connect(g.gain);
+    src.connect(f); f.connect(g); g.connect(bus);
+    src.start(); lfo.start();
+  }
+
+  function padNote(hz, t, dur, v){
+    const o1 = ctx.createOscillator(), o2 = ctx.createOscillator();
+    o1.type='sawtooth'; o2.type='triangle';
+    o1.frequency.value = o2.frequency.value = hz;
+    o1.detune.value = rand(-7,7); o2.detune.value = rand(-7,7);
+    const f = ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=760; f.Q.value=.3;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(v, t+2.6);
+    g.gain.setValueAtTime(v, t+dur-2.8);
+    g.gain.linearRampToValueAtTime(0, t+dur);
+    o1.connect(f); o2.connect(f); f.connect(g); g.connect(bus);
+    o1.start(t); o2.start(t); o1.stop(t+dur+.1); o2.stop(t+dur+.1);
+  }
+  function bassNote(hz, t, dur){
+    const o = ctx.createOscillator(); o.type='sine'; o.frequency.value=hz;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(.11, t+1.4);
+    g.gain.setValueAtTime(.11, t+dur-2.2);
+    g.gain.linearRampToValueAtTime(0, t+dur);
+    o.connect(g); g.connect(bus);
+    o.start(t); o.stop(t+dur+.1);
+  }
+  function pluck(hz, t, v=.13, dur=2.0){
+    const o = ctx.createOscillator(); o.type='triangle'; o.frequency.value=hz;
+    const f = ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=2400;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(v, t+.015);
+    g.gain.exponentialRampToValueAtTime(.0006, t+dur);
+    o.connect(f); f.connect(g); g.connect(bus);
+    o.start(t); o.stop(t+dur+.1);
+  }
+  function bell(hz, t){
+    [[1,.05],[2.01,.018],[2.98,.01]].forEach(([mul,v])=>{
+      const o = ctx.createOscillator(); o.type='sine'; o.frequency.value=hz*mul;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0,t);
+      g.gain.linearRampToValueAtTime(v, t+.02);
+      g.gain.exponentialRampToValueAtTime(.0004, t+4.2);
+      o.connect(g); g.connect(bus);
+      o.start(t); o.stop(t+4.4);
+    });
+  }
+  function cricket(t){
+    const o = ctx.createOscillator(); o.type='sine';
+    o.frequency.value = rand(4100,4600);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0, t);
+    const n = 3 + (rand(4)|0);
+    for(let i=0;i<n;i++){
+      const t0 = i*.09;
+      g.gain.linearRampToValueAtTime(.011, t0+.012);
+      g.gain.linearRampToValueAtTime(0, t0+.062);
+    }
+    o.connect(g); g.connect(bus);
+    o.start(t); o.stop(t + n*.09 + .1);
+  }
+
+  const A = { ctx, master, melodyPool: [], mode: MUSIC_MODES.none };
+  A.setTheme = (name)=>{ A.mode = MUSIC_MODES[name] || MUSIC_MODES.none; };
+  function chordLoop(i){
+    const t = ctx.currentTime + .06;
+    const c = A.mode.chords[i % A.mode.chords.length];
+    bassNote(midiHz(c.bass), t, 9.4);
+    c.pad.forEach(m => padNote(midiHz(m), t, 9.4, .024));
+    A.melodyPool = c.pad.map(m=>m+12).concat(c.pad.slice(1).map(m=>m+24));
+    A.chordTimer = setTimeout(()=>chordLoop(i+1), 8000);
+  }
+  function pluckLoop(){
+    if (A.melodyPool.length && Math.random() < .8){
+      pluck(midiHz(A.melodyPool[(Math.random()*A.melodyPool.length)|0]), ctx.currentTime + .04);
+    }
+    A.pluckTimer = setTimeout(pluckLoop, A.mode.pluck[0] + Math.random()*(A.mode.pluck[1]-A.mode.pluck[0]));
+  }
+  function bellLoop(){
+    const pool = [76, 79, 81, 84];
+    bell(midiHz(pool[(Math.random()*pool.length)|0]), ctx.currentTime + .05);
+    A.bellTimer = setTimeout(bellLoop, A.mode.bell[0] + Math.random()*(A.mode.bell[1]-A.mode.bell[0]));
+  }
+  function cricketLoop(){
+    if (Math.random() < .6) cricket(ctx.currentTime + .05);
+    A.cricketTimer = setTimeout(cricketLoop, 1600 + Math.random()*3800);
+  }
+
+  /* —— 环境音层:雨 / 风 / 雷(与旋律并行,共用 master) —— */
+  const ambBus = ctx.createGain(); ambBus.gain.value = 1; ambBus.connect(master);
+  const noiseBuf = (()=>{
+    const len = ctx.sampleRate * 3 | 0;
+    const b = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = b.getChannelData(0);
+    for(let i=0;i<len;i++) d[i] = Math.random()*2-1;
+    return b;
+  })();
+  const noiseLoop = ()=>{ const s = ctx.createBufferSource(); s.buffer = noiseBuf; s.loop = true; s.start(); return s; };
+
+  // 雨:高通 + 低通塑形成沙沙声
+  const rainG = ctx.createGain(); rainG.gain.value = 0; rainG.connect(ambBus);
+  {
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 780;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass';  lp.frequency.value = 7200;
+    const s = noiseLoop(); s.connect(hp); hp.connect(lp); lp.connect(rainG);
+  }
+  // 风:低通噪声 + 极慢起伏
+  const windG = ctx.createGain(); windG.gain.value = 0; windG.connect(ambBus);
+  {
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 300;
+    const s = noiseLoop(); s.connect(lp); lp.connect(windG);
+    const lfo = ctx.createOscillator(); lfo.frequency.value = .08;
+    const depth = ctx.createGain(); depth.gain.value = .02;
+    lfo.connect(depth); depth.connect(windG.gain); lfo.start();
+  }
+  // 雷:低频滚雷,延迟由调用方控制
+  A.thunder = ()=>{
+    const t0 = ctx.currentTime;
+    const s = ctx.createBufferSource(); s.buffer = noiseBuf;
+    const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 150; f.Q.value = .9;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(.0001, t0);
+    g.gain.exponentialRampToValueAtTime(.52, t0 + .09);
+    g.gain.exponentialRampToValueAtTime(.0016, t0 + 3.2);
+    s.connect(f); f.connect(g); g.connect(ambBus);
+    s.start(t0); s.stop(t0 + 3.4);
+  };
+  A.setWeather = (w)=>{
+    const W = WEATHERS[w] || WEATHERS.clear, t0 = ctx.currentTime;
+    rainG.gain.setTargetAtTime(W.rainA * .30, t0, .9);
+    windG.gain.setTargetAtTime(W.windA * .09, t0, 1.4);
+  };
+
+  chordLoop(0); pluckLoop(); bellLoop(); cricketLoop();
+  return A;
+}
+window.__audioSetTheme = (name)=>{ if (audio) audio.setTheme(name); };
+window.__audioWeather = (w)=>{ if (audio && audio.setWeather) audio.setWeather(w); };
+window.__audioThunder = (delay)=>{ setTimeout(()=>{ if (audio && audio.thunder) audio.thunder(); }, delay || 0); };
+
+function musicFade(v, tc=.5){
+  if (!audio) return;
+  const g = audio.master.gain;
+  g.cancelScheduledValues(audio.ctx.currentTime);
+  g.setTargetAtTime(v, audio.ctx.currentTime, tc);
+}
+function tryStartMusic(){
+  if (!musicOn) return;
+  if (!audio) audio = buildAudio();
+  if (audio.ctx.state === 'suspended') audio.ctx.resume();
+  if (audio.ctx.state === 'running' && !musicStarted){
+    musicStarted = true;
+    musicFade(.85, 1.2);
+  }
+}
+btnMusic.onclick = ()=>{
+  musicOn = !musicOn;
+  btnMusic.textContent = musicOn ? '音乐 · 开' : '音乐 · 关';
+  btnMusic.classList.toggle('off', !musicOn);
+  if (musicOn){ musicStarted = false; tryStartMusic(); }
+  else musicFade(0, .4);
+};
+addEventListener('pointerdown', tryStartMusic);
+addEventListener('keydown', tryStartMusic);
+addEventListener('touchend', tryStartMusic);
+tryStartMusic();
+window.__musicInfo = () => audio ? { state: audio.ctx.state, vol: +audio.master.gain.value.toFixed(2) } : null;
+
+/* ============================================================
+   15. 动画循环
+============================================================ */
+const clock = new THREE.Clock();
+let firstFrame = true;
+
+renderer.setAnimationLoop(()=>{
+  const dt = Math.min(clock.getDelta(), .05);
+  const t  = clock.elapsedTime;
+  uTime.value = t;
+  gradePass.uniforms.uTime.value = t;
+
+  // 天气粒子(雨丝 / 雪花)
+  if (weatherPoints.visible){
+    const W = WEATHERS[curWeather], isSnow = W.snow > 0;
+    const pos = wGeo.attributes.position;
+    const fall = isSnow ? 1.7 : 27;
+    for(let i=0;i<WN;i++){
+      let y = pos.getY(i) - fall * wVel[i] * dt;
+      let x = pos.getX(i);
+      if (isSnow) x += Math.sin(t*.8 + wPh[i]) * .5 * dt;
+      else        x += W.windX * dt;
+      if (y < 0){ y = 22 + Math.random()*6; x = rand(-32,32); pos.setZ(i, rand(-32,32)); }
+      if (x >  32) x = -32;
+      if (x < -32) x =  32;
+      pos.setXYZ(i, x, y, pos.getZ(i));
+    }
+    pos.needsUpdate = true;
+  }
+
+  // 雷雨:闪电(双闪 + 拖尾)与延迟雷声
+  if (WEATHERS[curWeather].bolt > 0 && boltT < 0 && t > nextBolt){
+    nextBolt = t + rand(4, 10);
+    boltT = 0;
+    if (window.__audioThunder) window.__audioThunder(240 + Math.random()*900);
+  }
+  if (boltT >= 0){
+    boltT += dt;
+    let v;
+    if      (boltT < .07) v = 1;
+    else if (boltT < .13) v = .22;
+    else if (boltT < .21) v = .82;
+    else                  v = Math.max(0, .82 * (1 - (boltT - .21) / .34));
+    flashEl.style.opacity = (v * .72).toFixed(3);
+    if (boltT > .58){ boltT = -1; flashEl.style.opacity = '0'; }
+  } else if (flashEl.style.opacity !== '0'){
+    flashEl.style.opacity = '0';
+  }
+
+  // 烛火摇曳
+  for(const c of candleLights){
+    const f = .84 + .16*Math.sin(t*6.7 + c.ph) + .07*Math.sin(t*12.3 + c.ph*2.1);
+    c.light.intensity = c.baseI * f;
+    c.flame.material.opacity = .9 * f;
+    c.flame.scale.set(.17, .25*f, 1);
+  }
+
+  // 炊烟
+  for(const s of smokeSprites){
+    let ph = (s.userData.phase + dt*.1) % 1;
+    s.userData.phase = ph;
+    const rise = ph*8.5;
+    s.position.set(
+      CHIMNEY_TOP.x + Math.sin(ph*9)*.18 + ph*ph*2.2,
+      CHIMNEY_TOP.y + rise,
+      CHIMNEY_TOP.z + ph*ph*1.3 + Math.sin(ph*6)*.15
+    );
+    s.scale.setScalar(.6 + ph*2.9);
+    s.material.opacity = (1-ph) * .48 * sstep(0,.12,ph);
+    s.material.rotation += dt*.12;
+  }
+
+  // 薄雾
+  for(const s of mistSprites){
+    const u = s.userData;
+    s.position.x = u.x0 + Math.sin(t*.04+u.ph)*2.4;
+    s.material.opacity = u.o * (.7+.3*Math.sin(t*.16+u.ph*2.7));
+  }
+
+  // 萤火虫
+  if (fireflies.mat.visible){
+    const pos = fireflies.geo.attributes.position;
+    const col = fireflies.geo.attributes.color;
+    for(let i=0;i<FIREFLY_N;i++){
+      const b = fireflies.base[i];
+      pos.setXYZ(i,
+        b.x + Math.sin(t*.4+b.ph)*.7,
+        b.y + Math.sin(t*.8+b.ph*2.)*.45,
+        b.z + Math.cos(t*.33+b.ph*1.3)*.7);
+      const tw = clamp(.35+.65*(.5+.5*Math.sin(t*2.1+b.ph*7.)), 0, 1);
+      col.setXYZ(i, tw, .82*tw, .38*tw);
+    }
+    pos.needsUpdate = true; col.needsUpdate = true;
+  }
+
+  // 季节粒子
+  {
+    const pos = partGeo.attributes.position;
+    const cfg = partState.mode;
+    for(let i=0;i<PART_N;i++){
+      let y = pos.getY(i) - cfg.speed * partState.speeds[i] * dt;
+      let x = pos.getX(i) + Math.sin(t*.8 + partState.phase[i]) * cfg.sway * dt;
+      let z = pos.getZ(i) + Math.cos(t*.6 + partState.phase[i]) * cfg.sway * .6 * dt;
+      if (y < .05){ y = rand(9,13); }
+      pos.setXYZ(i, x, y, z);
+    }
+    pos.needsUpdate = true;
+  }
+
+  // 圣诞彩灯闪烁
+  if (christmasGroup.visible){
+    const col = stringLightGeo.attributes.color;
+    const palette = [0xff5a5a,0xffd23f,0x4fd06a,0x5aa0ff,0xff8ad0];
+    const c = new THREE.Color();
+    for(let i=0;i<24;i++){
+      const k = Math.max(.25, .5+.5*Math.sin(t*2.2 + i*1.7));
+      c.set(palette[i%5]).multiplyScalar(k);
+      col.setXYZ(i, c.r, c.g, c.b);
+    }
+    col.needsUpdate = true;
+  }
+
+  // 飞鸟 / 万圣蝙蝠
+  for(const b of birds){
+    const u = b.userData;
+    if (birdMode === 'bat'){
+      const a = t*.12 + u.off;
+      const R = 9 + (u.r-46)*.18;
+      b.position.set(Math.cos(a)*R, 3.5 + 2.2*Math.sin(t*.7+u.off*9), Math.sin(a)*R*.7);
+      const a2 = a + .03;
+      b.lookAt(Math.cos(a2)*R, b.position.y, Math.sin(a2)*R*.7);
+      const flap = Math.sin(t*14+u.off*20)*.7;
+      u.wl.rotation.z = flap; u.wr.rotation.z = -flap;
+      b.scale.setScalar(.9);
+    } else {
+      const a = t*u.sp + u.off;
+      b.position.set(Math.cos(a)*u.r, u.h + Math.sin(t*.3+u.off*9)*2.2, Math.sin(a)*u.r*.8);
+      const a2 = a + .02;
+      b.lookAt(Math.cos(a2)*u.r, b.position.y, Math.sin(a2)*u.r*.8);
+      const flap = Math.sin(t*8.5+u.off*20)*.6;
+      u.wl.rotation.z = flap; u.wr.rotation.z = -flap;
+      b.scale.setScalar(1.5);
+    }
+  }
+
+  // 相机:开场推进 → 呼吸式环绕
+  if (introT < INTRO){
+    introT += dt;
+    const k = sstep(0, 1, introT/INTRO);
+    const e = k*k*(3-2*k);
+    camera.position.lerpVectors(introFrom, introTo, e);
+  } else if (cruise && !interacting){
+    if (performance.now() - lastAct > 6000) controls.autoRotate = true;
+    const targetR = 14.6 + Math.sin(t*.09)*1.7;
+    const off = camera.position.clone().sub(controls.target);
+    off.setLength(lerp(off.length(), targetR, .012));
+    camera.position.copy(controls.target).add(off);
+  }
+  controls.update();
+  composer.render();
+
+  if (firstFrame){
+    firstFrame = false;
+    document.getElementById('loader').classList.add('hide');
+  }
+});
+
+addEventListener('resize', ()=>{
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  composer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>
