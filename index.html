@@ -76,6 +76,98 @@
   .btn.off { color: #8d8471; }
   body.idle #hud, body.idle #ui { opacity: 0; }
 
+  /* ---- 「更多」功能面板 ---- */
+  #more { position: fixed; right: 2.6vh; top: 7.2vh; z-index: 11; display: none;
+          grid-template-columns: repeat(2, minmax(118px, 1fr)); gap: 8px;
+          padding: 12px; border-radius: 16px; background: rgba(22,19,15,.95);
+          border: 1px solid rgba(233,222,203,.16); box-shadow: 0 18px 50px rgba(0,0,0,.5);
+          backdrop-filter: blur(9px); transition: opacity 1s ease; }
+  #more.show { display: grid; }
+  #more .btn { width: 100%; text-align: center; }
+  body.idle #more { opacity: 0; }
+  @media (max-width: 940px){
+    #more { top: auto; bottom: 13vh; left: 50%; right: auto; transform: translateX(-50%); }
+  }
+
+  /* ---- 场景预设卡片面板 ---- */
+  #presets { position: fixed; left: 50%; top: 50%; transform: translate(-50%,-46%); z-index: 12;
+             width: min(760px, 92vw); max-height: 82vh; overflow: auto; padding: 20px 20px 18px;
+             border-radius: 18px; background: rgba(22,19,15,.96);
+             border: 1px solid rgba(233,222,203,.16); box-shadow: 0 24px 70px rgba(0,0,0,.6);
+             opacity: 0; pointer-events: none;
+             transition: opacity .28s ease, transform .28s ease; }
+  #presets.show { opacity: 1; pointer-events: auto; transform: translate(-50%,-50%); }
+  .ps-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px;
+             font-size: 13px; letter-spacing: .24em; color: #f0e6d2; }
+  .ps-head span { font-size: 10.5px; letter-spacing: .06em; color: #8d8471; }
+  .ps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px,1fr)); gap: 10px; }
+  .ps-card { border-radius: 12px; overflow: hidden; cursor: pointer; background: #1a1713;
+             border: 1px solid rgba(233,222,203,.14);
+             transition: transform .2s ease, border-color .2s ease; }
+  .ps-card:hover { transform: translateY(-2px); border-color: rgba(232,183,106,.55); }
+  .ps-card.active { border-color: rgba(232,183,106,.8); box-shadow: 0 0 0 1px rgba(232,183,106,.4) inset; }
+  .ps-thumb { height: 72px; }
+  .ps-name { padding: 8px 10px 1px; font-size: 12.5px; color: #f0e6d2; }
+  .ps-sub { padding: 0 10px 9px; font-size: 10.5px; color: #8d8471; }
+  @media (max-width: 560px){
+    .ps-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .ps-thumb { height: 58px; }
+  }
+
+  /* ---- 音景混音面板 ---- */
+  #amb { position: fixed; left: 50%; top: 50%; transform: translate(-50%,-46%); z-index: 12;
+         width: min(370px, 88vw); padding: 20px; border-radius: 18px;
+         background: rgba(22,19,15,.96); border: 1px solid rgba(233,222,203,.16);
+         box-shadow: 0 24px 70px rgba(0,0,0,.6); opacity: 0; pointer-events: none;
+         transition: opacity .28s ease, transform .28s ease; }
+  #amb.show { opacity: 1; pointer-events: auto; transform: translate(-50%,-50%); }
+  .amb-row { display: grid; grid-template-columns: 46px 1fr 42px; align-items: center;
+             gap: 10px; padding: 7px 0; font-size: 12px; color: #cbbc9f; }
+  .amb-row input[type=range]{ -webkit-appearance:none; appearance:none; width:100%; height:3px;
+             border-radius:2px; background:rgba(233,222,203,.2); outline:none; }
+  .amb-row input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:13px; height:13px;
+             border-radius:50%; background:#e8b76a; cursor:pointer;
+             box-shadow:0 0 8px rgba(232,183,106,.55); }
+  .amb-row input[type=range]::-moz-range-thumb{ width:13px; height:13px; border:none; border-radius:50%;
+             background:#e8b76a; cursor:pointer; }
+  .amb-val { text-align:right; color:#8d8471; font-size:11px; font-variant-numeric:tabular-nums; }
+
+  /* ---- 照片模式面板 ---- */
+  #photo { position: fixed; left: 50%; top: 50%; transform: translate(-50%,-46%); z-index: 12;
+           width: min(390px, 90vw); padding: 20px; border-radius: 18px;
+           background: rgba(22,19,15,.96); border: 1px solid rgba(233,222,203,.16);
+           box-shadow: 0 24px 70px rgba(0,0,0,.6); opacity: 0; pointer-events: none;
+           transition: opacity .28s ease, transform .28s ease; }
+  #photo.show { opacity: 1; pointer-events: auto; transform: translate(-50%,-50%); }
+  .ph-filters { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; }
+  .ph-f { padding: 9px; border-radius: 10px; text-align: center; font-size: 12px;
+          cursor: pointer; color: #cbbc9f; background: rgba(255,255,255,.03);
+          border: 1px solid rgba(233,222,203,.16); transition: all .2s; }
+  .ph-f:hover { border-color: rgba(232,183,106,.4); }
+  .ph-f.on { border-color: rgba(232,183,106,.75); color: #f0e6d2; background: rgba(232,183,106,.12); }
+  .ph-shoot { width: 100%; margin-top: 12px; }
+
+  /* ---- 专注番茄钟面板 ---- */
+  #focus { position: fixed; left: 50%; top: 50%; transform: translate(-50%,-46%); z-index: 12;
+           width: min(330px, 88vw); padding: 22px 20px 18px; border-radius: 18px;
+           background: rgba(22,19,15,.96); border: 1px solid rgba(233,222,203,.16);
+           box-shadow: 0 24px 70px rgba(0,0,0,.6); opacity: 0; pointer-events: none;
+           transition: opacity .28s ease, transform .28s ease; }
+  #focus.show { opacity: 1; pointer-events: auto; transform: translate(-50%,-50%); }
+  .fc-time { font-size: 46px; text-align: center; color: #f3e9d6; letter-spacing: .06em;
+             font-variant-numeric: tabular-nums; margin: 10px 0 12px; }
+  .fc-bar { height: 4px; border-radius: 2px; background: rgba(233,222,203,.15); overflow: hidden; }
+  .fc-bar i { display: block; height: 100%; width: 0;
+              background: linear-gradient(90deg,#e8b76a,#ffd9a0); transition: width .25s linear; }
+  .fc-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+  .fc-hint { margin-top: 11px; font-size: 10.5px; color: #8d8471; text-align: center; }
+
+  /* ---- 沉浸模式:隐藏全部界面 ---- */
+  body.immersive #ui, body.immersive #more, body.immersive #status, body.immersive #bright,
+  body.immersive #gh, body.immersive #hud, body.immersive #caption, body.immersive #toast,
+  body.immersive .bar, body.immersive #flash { opacity: 0 !important; pointer-events: none !important; }
+  body.immersive { cursor: none; }
+
   /* ---- GitHub 入口(左下角,不占按钮组) ---- */
   #gh { position: fixed; left: 2.6vh; bottom: 2.6vh; z-index: 9; display: flex; align-items: center;
         gap: 8px; padding: 6px 13px; border-radius: 999px; text-decoration: none;
@@ -214,11 +306,18 @@
   <button class="btn" id="btnWeather">天气 · 晴</button>
   <button class="btn" id="btnDwelling">居所 · 小屋</button>
   <button class="btn" id="btnTheme">主题 · 无</button>
+  <button class="btn" id="btnShare">分享</button>
+  <button class="btn" id="btnMore">更多</button>
+</div>
+<div id="more">
   <button class="btn" id="btnMusic">音乐 · 开</button>
   <button class="btn" id="btnCruise">巡航 · 开</button>
   <button class="btn" id="btnCine">画幅 · 开</button>
-  <button class="btn" id="btnShot">截图</button>
-  <button class="btn" id="btnShare">分享</button>
+  <button class="btn" id="btnShot">照片</button>
+  <button class="btn" id="btnAmb">音景</button>
+  <button class="btn" id="btnPreset">场景</button>
+  <button class="btn" id="btnImmersive">沉浸</button>
+  <button class="btn" id="btnFocus">专注</button>
 </div>
 <div id="status"><span class="dot"></span><span id="statusText">秋 · 晴 · 60%</span></div>
 <a id="gh" href="https://github.com/geracdkabeerq2-collab/forest-cabin" target="_blank" rel="noopener"
@@ -227,6 +326,29 @@
   <span>Star on GitHub</span>
 </a>
 <div id="flash"></div>
+<div id="presets">
+  <div class="ps-head">场景预设<span>点击卡片直接切换</span></div>
+  <div class="ps-grid" id="psGrid"></div>
+</div>
+<div id="amb">
+  <div class="ps-head">音景混音<span>拖动调整各轨音量</span></div>
+  <div id="ambRows"></div>
+</div>
+<div id="photo">
+  <div class="ps-head">照片模式<span>2× 超采样 · 自动加边框</span></div>
+  <div class="ph-filters" id="phFilters"></div>
+  <button class="btn ph-shoot" id="phShoot">拍摄并下载</button>
+</div>
+<div id="focus">
+  <div class="ps-head">专注时刻<span>结束后有铃声</span></div>
+  <div class="fc-time" id="fcTime">25:00</div>
+  <div class="fc-bar"><i id="fcFill"></i></div>
+  <div class="fc-btns">
+    <button class="btn" id="fcStart">开始</button>
+    <button class="btn" id="fcReset">重置</button>
+  </div>
+  <div class="fc-hint">建议配合「沉浸」模式一起用</div>
+</div>
 <div id="toast"></div>
 <div id="help">
   <div class="panel">
@@ -307,6 +429,24 @@ const lerp=(a,b,t)=>a+(b-a)*t;
 ============================================================ */
 // 启动瞬间快照 URL 参数:后续 syncUrl 会改写地址栏,不能指望再读
 const INIT_Q = new URLSearchParams(location.search);
+
+/* ============================================================
+   0.6 可交互物件注册表(点击拾取)
+============================================================ */
+const interactables = [];
+function makeInteractive(obj, label, onClick){
+  interactables.push({ obj, label, onClick });
+  obj.userData._ix = interactables.length - 1;
+  return obj;
+}
+// 透明点击热区(用于火焰等没有实体的目标)
+// 注意:必须保持 visible=true 且用 opacity:0,否则会被拾取的可见性过滤剔除
+function hitSphere(x, y, z, r){
+  const m = new THREE.Mesh(new THREE.SphereGeometry(r, 8, 6),
+    new THREE.MeshBasicMaterial({ transparent:true, opacity:0, depthWrite:false }));
+  m.position.set(x, y, z);
+  return m;
+}
 
 const PERF = (()=>{
   const cores  = navigator.hardwareConcurrency || 4;
@@ -1041,7 +1181,19 @@ const tentGroup = new THREE.Group(); tentGroup.visible = false; scene.add(tentGr
   fFlame.scale.set(.9,1.2,1); fFlame.position.set(FX, .78, FZ); tentGroup.add(fFlame);
   const fLight = new THREE.PointLight(0xff9a3c, 1.2, 6.5, 2);
   fLight.position.set(FX, .85, FZ); tentGroup.add(fLight);
-  candleLights.push({ light:fLight, flame:fFlame, baseI:1.2, w:.9, h:1.2, ph:rand(0,6.28) });
+  const fireObj = { light:fLight, flame:fFlame, baseI:1.2, w:.9, h:1.2, ph:rand(0,6.28), mul:1 };
+  candleLights.push(fireObj);
+  // 篝火热区:点击添柴,火势三档循环
+  let fireStep = 1;
+  const fireHit = hitSphere(FX, .8, FZ, 1.0);
+  tentGroup.add(fireHit);
+  makeInteractive(fireHit, '篝火', ()=>{
+    const steps = [.35, 1, 1.7];
+    const names = ['火苗渐小', '火势正好', '篝火正旺'];
+    fireStep = (fireStep + 1) % 3;
+    fireObj.mul = steps[fireStep];
+    toast(names[fireStep]);
+  });
 }
 
 /* —— 房车:厢式车身 + 遮阳篷 + 四轮 —— */
@@ -1155,7 +1307,15 @@ const smokeAnchor = new THREE.Vector3(1.9, 5.15, -1.0);
     const l = new THREE.PointLight(0xffb45c, .5, 3.4, 2);
     l.position.y = .29; g.add(l);
     g.position.set(x, 1.68, CD/2+.1); cabin.add(g);
-    candleLights.push({ light:l, flame, baseI:.5, w:.17, h:.25, ph:rand(0,6.28) });
+    const cObj = { light:l, flame, baseI:.5, w:.17, h:.25, ph:rand(0,6.28), lit:true };
+    candleLights.push(cObj);
+    // 烛台点击热区(蜡体只有几像素,必须放大热区)
+    const cHit = hitSphere(0, .16, 0, .42);
+    g.add(cHit);
+    makeInteractive(cHit, '烛台', ()=>{
+      cObj.lit = !cObj.lit;
+      toast(cObj.lit ? '烛火点亮' : '烛火熄灭');
+    });
   }
   const mk = (x,z,i)=>{ const l = new THREE.PointLight(0xffb066, i, 5.5, 2); l.position.set(x,1.75,z); cabin.add(l); return l; };
   winLights.push(mk(-3.2, CD/2+.45, 1.05), mk(1.05, CD/2+.45, 1.05), mk(0, CD/2+.9, .75));
@@ -1483,7 +1643,8 @@ const FESTIVALS = {};
 function festGroup(name){
   const g = new THREE.Group(); g.visible = false; scene.add(g); FESTIVALS[name] = g; return g;
 }
-// 灯笼:球体 + 金顶 + 流苏,可选点光源
+// 灯笼:球体 + 金顶 + 流苏,可选点光源;点击换色
+const LANT_COLORS = [0xd63b2e, 0xffb066, 0xf0c65a, 0xff9ec4, 0x9ad0ff];
 function lantern(g, x, y, z, color, s, lightPower){
   const grp = new THREE.Group();
   const body = new THREE.Mesh(new THREE.SphereGeometry(.26,10,8),
@@ -1493,8 +1654,18 @@ function lantern(g, x, y, z, color, s, lightPower){
   capT.position.y = .25; grp.add(capT);
   const tassel = new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.28,4), matRedL);
   tassel.position.y = -.34; grp.add(tassel);
-  if (lightPower > 0){ const l = new THREE.PointLight(color, lightPower, 4.5, 2); grp.add(l); }
+  let lightSrc = null;
+  if (lightPower > 0){ lightSrc = new THREE.PointLight(color, lightPower, 4.5, 2); grp.add(lightSrc); }
   grp.position.set(x,y,z); grp.scale.setScalar(s); g.add(grp);
+  // 点击:循环换色
+  let ci = Math.max(0, LANT_COLORS.indexOf(color));
+  makeInteractive(grp, '灯笼', ()=>{
+    ci = (ci + 1) % LANT_COLORS.length;
+    const c2 = LANT_COLORS[ci];
+    body.material.color.set(c2);
+    body.material.emissive.set(c2);
+    if (lightSrc) lightSrc.color.set(c2);
+  });
   return grp;
 }
 // 托盘(承载节令食物)
@@ -1858,6 +2029,7 @@ function applyWeather(){
   // 雪天把季节粒子统一成雪;其余天气恢复季节/主题粒子
   setParticles(W.snow > 0 ? 'winter' : (THEMES[state.theme].particles || SEASONS[state.season].particles));
   if (window.__audioWeather) window.__audioWeather(curWeather);
+  if (window.__audioAmbience) window.__audioAmbience(curWeather, curDwelling, state.season);
 }
 function setWeather(name){
   if (!WEATHERS[name] || name === curWeather) { return; }
@@ -1871,8 +2043,7 @@ function setWeather(name){
   if (typeof syncUrl === 'function') syncUrl();
 }
 
-/* —— 居所切换:小屋 / 帐篷 / 房车 / 树屋 —— */
-let curDwelling = 'cabin';
+/* —— 居所切换:小屋 / 帐篷 / 房车 / 树屋 —— */let curDwelling = 'cabin';
 function setDwelling(name){
   if (!DWELLINGS[name] || name === curDwelling) return;
   curDwelling = name;
@@ -2045,7 +2216,7 @@ applyBright();
 window.__bright = ()=>({ level: brightLevel, exposure: +renderer.toneMappingExposure.toFixed(3),
                          amb: +amb.intensity.toFixed(3), bloom: +bloom.strength.toFixed(3) });
 // 调试句柄:便于外部检查场景状态(相机/材质/灯光数组)
-window.__cabin = { renderer, scene, camera, controls, matPane, winLights, candleLights, windowPanes, THREE };
+window.__cabin = { renderer, scene, camera, controls, matPane, winLights, candleLights, windowPanes, THREE, interactables };
 
 /* ============================================================
    11.6 状态行 / 分享链接 / 操作说明 / 快捷键
@@ -2126,13 +2297,384 @@ const btnShareEl = document.getElementById('btnShare');
 btnShareEl.onclick = shareLink;
 helpEl.addEventListener('click', ()=>toggleHelp(false));
 
+/* —— 「更多」功能面板 —— */
+const btnMoreEl = document.getElementById('btnMore');
+const moreEl = document.getElementById('more');
+function toggleMore(v){
+  if (!moreEl) return;
+  const on = (v === undefined) ? !moreEl.classList.contains('show') : v;
+  moreEl.classList.toggle('show', on);
+  if (btnMoreEl) btnMoreEl.classList.toggle('off', on);
+}
+if (btnMoreEl) btnMoreEl.onclick = (e)=>{ e.stopPropagation(); toggleMore(); };
+document.addEventListener('pointerdown', (e)=>{
+  if (!moreEl || !moreEl.classList.contains('show')) return;
+  if (moreEl.contains(e.target) || (btnMoreEl && btnMoreEl.contains(e.target))) return;
+  toggleMore(false);
+});
+
+/* —— 沉浸 / 壁纸模式:隐藏界面 + 缓慢环绕运镜 —— */
+let immersive = false, immT = 0;
+function setImmersive(on){
+  immersive = !!on;
+  document.body.classList.toggle('immersive', immersive);
+  if (immersive){
+    controls.enabled = false;
+    controls.autoRotate = false;
+    immT = 0;
+  } else {
+    controls.enabled = true;
+    controls.autoRotate = cruise;
+    if (typeof wakeHud === 'function') wakeHud();
+  }
+  const b = document.getElementById('btnImmersive');
+  if (b) b.textContent = immersive ? '沉浸 · 开' : '沉浸';
+  toggleMore(false);
+  if (immersive) toast('沉浸模式 · 按 Esc 退出');
+}
+const btnImmEl = document.getElementById('btnImmersive');
+if (btnImmEl) btnImmEl.onclick = ()=> setImmersive(!immersive);
+
+/* —— 点击拾取:蜡烛/篝火/灯笼 —— */
+const ray = new THREE.Raycaster();
+const ndcV = new THREE.Vector2();
+let ixDown = null;
+canvas.addEventListener('pointerdown', (e)=>{ ixDown = [e.clientX, e.clientY]; });
+canvas.addEventListener('pointerup', (e)=>{
+  if (!ixDown) return;
+  const dx = e.clientX - ixDown[0], dy = e.clientY - ixDown[1];
+  ixDown = null;
+  if (Math.hypot(dx, dy) > 6) return;              // 拖拽不算点击
+  if (immersive){ setImmersive(false); return; }    // 沉浸模式下点击即退出
+  if (!interactables.length) return;
+  ndcV.x = (e.clientX / innerWidth) * 2 - 1;
+  ndcV.y = -(e.clientY / innerHeight) * 2 + 1;
+  ray.setFromCamera(ndcV, camera);
+  // Raycaster 不检查 visible,必须手动剔除隐藏节日组里的道具
+  const hits = ray.intersectObjects(interactables.map(i=>i.obj), true).filter(h=>{
+    let o = h.object;
+    while (o){ if (o.visible === false) return false; o = o.parent; }
+    return true;
+  });
+  if (!hits.length) return;
+  let o = hits[0].object;
+  while (o && o.userData._ix === undefined) o = o.parent;
+  if (o && o.userData._ix !== undefined){
+    interactables[o.userData._ix].onClick();
+    if (typeof wakeHud === 'function') wakeHud();
+  }
+});
+// 悬停反馈(节流)
+let hoverAt = 0;
+canvas.addEventListener('pointermove', (e)=>{
+  if (immersive) return;
+  const now = performance.now();
+  if (now - hoverAt < 140) return;
+  hoverAt = now;
+  ndcV.x = (e.clientX / innerWidth) * 2 - 1;
+  ndcV.y = -(e.clientY / innerHeight) * 2 + 1;
+  ray.setFromCamera(ndcV, camera);
+  const hits = ray.intersectObjects(interactables.map(i=>i.obj), true).filter(h=>{
+    let o = h.object;
+    while (o){ if (o.visible === false) return false; o = o.parent; }
+    return true;
+  });
+  canvas.style.cursor = hits.length ? 'pointer' : 'grab';
+});
+
+/* —— 场景预设:纯数据表驱动(参考 Elemental-Serenity 的 presets 表 + 幂等切换) —— */
+const PRESETS = [
+  { id:'autumn-dusk', name:'秋日黄昏', s:'autumn', t:'none',       w:'clear', d:'cabin',     b:6, c1:'#d0a984', c2:'#33506e' },
+  { id:'new-year',    name:'雪夜守岁', s:'winter', t:'springFest', w:'snow',  d:'cabin',     b:6, c1:'#c8342c', c2:'#2a1620' },
+  { id:'summer-fly',  name:'仲夏萤火', s:'summer', t:'none',       w:'clear', d:'tent',      b:7, c1:'#ffe6ae', c2:'#2a3a2e' },
+  { id:'qingming',    name:'清明细雨', s:'spring', t:'qingming',   w:'rain',  d:'tent',      b:6, c1:'#c8d8bc', c2:'#3a4a48' },
+  { id:'duanwu',      name:'端午出游', s:'summer', t:'dragonBoat', w:'clear', d:'rv',        b:7, c1:'#9aa878', c2:'#2a3a34' },
+  { id:'qixi',        name:'七夕星河', s:'summer', t:'qixi',       w:'clear', d:'tent',      b:5, c1:'#ffb6d0', c2:'#141a33' },
+  { id:'mid-autumn',  name:'中秋赏月', s:'autumn', t:'midAutumn',  w:'clear', d:'treehouse', b:7, c1:'#f0e8d0', c2:'#141c30' },
+  { id:'christmas',   name:'圣诞雪夜', s:'winter', t:'christmas',  w:'snow',  d:'cabin',     b:6, c1:'#e4ecff', c2:'#243250' },
+];
+const presetsEl = document.getElementById('presets');
+const psGridEl  = document.getElementById('psGrid');
+
+function buildPresetCards(){
+  if (!psGridEl) return;
+  psGridEl.innerHTML = '';
+  PRESETS.forEach(p=>{
+    const card = document.createElement('div');
+    card.className = 'ps-card';
+    card.dataset.id = p.id;
+    card.innerHTML =
+      `<div class="ps-thumb" style="background:linear-gradient(160deg,${p.c1},${p.c2})"></div>
+       <div class="ps-name">${p.name}</div>
+       <div class="ps-sub">${SEASONS[p.s].label} · ${THEME_NAMES[p.t]} · ${WEATHERS[p.w].label} · ${DWELLING_LABEL[p.d]}</div>`;
+    card.onclick = ()=> applyPreset(p);
+    psGridEl.appendChild(card);
+  });
+}
+function togglePresets(v){
+  if (!presetsEl) return;
+  const on = (v === undefined) ? !presetsEl.classList.contains('show') : v;
+  presetsEl.classList.toggle('show', on);
+  if (on){ toggleMore(false); buildPresetCards(); }
+}
+function applyPreset(p){
+  if (!p) return;
+  // 幂等:与当前完全一致则不重复播放过渡(参考 Elemental-Serenity 的 oldValue===value 短路)
+  if (state.season===p.s && state.theme===p.t && curWeather===p.w
+      && curDwelling===p.d && brightLevel===p.b){ togglePresets(false); return; }
+
+  state.season = p.s; state.theme = p.t;
+  curWeather = p.w; curDwelling = p.d; brightLevel = p.b;
+  const bS = document.getElementById('btnSeason'),  bT = document.getElementById('btnTheme');
+  const bW = document.getElementById('btnWeather'), bD = document.getElementById('btnDwelling');
+  if (bS) bS.textContent = '季节 · ' + SEASONS[p.s].label;
+  if (bT) bT.textContent = '主题 · ' + THEME_NAMES[p.t];
+  if (bW) bW.textContent = '天气 · ' + WEATHERS[p.w].label;
+  if (bD) bD.textContent = '居所 · ' + DWELLING_LABEL[p.d];
+  for(const k in DWELLINGS) DWELLINGS[k].group.visible = (k === p.d);
+  smokeAnchor.copy(DWELLINGS[p.d].smoke);
+
+  fadeEl.classList.add('on');
+  setTimeout(()=>{
+    applyLook();                                  // 应用主题(含推荐天气)与字幕
+    if (curWeather !== p.w) setWeather(p.w);       // 预设的天气优先
+    applyBright();
+    controls.target.copy(DWELLINGS[p.d].target);
+    camera.position.copy(DWELLINGS[p.d].cam);
+    controls.update();
+    togglePresets(false);
+    toast(p.name);
+    setTimeout(()=>fadeEl.classList.remove('on'), 120);
+  }, 340);
+}
+const btnPresetEl = document.getElementById('btnPreset');
+if (btnPresetEl) btnPresetEl.onclick = ()=> togglePresets();
+if (presetsEl) presetsEl.addEventListener('click', (e)=>{ if (e.target === presetsEl) togglePresets(false); });
+
+/* —— 音景混音器(5 轨独立音量) —— */
+const AMB_TRACKS = [
+  { id:'rain',    label:'雨声' },
+  { id:'wind',    label:'风声' },
+  { id:'fire',    label:'篝火' },
+  { id:'cricket', label:'虫鸣' },
+  { id:'snow',    label:'落雪' },
+];
+const ambEl = document.getElementById('amb');
+const ambRowsEl = document.getElementById('ambRows');
+
+function buildAmbUI(){
+  if (!ambRowsEl) return;
+  if (!ambRowsEl.children.length){
+    AMB_TRACKS.forEach(t=>{
+      const row = document.createElement('div');
+      row.className = 'amb-row';
+      row.innerHTML = `<span>${t.label}</span>
+        <input type="range" min="0" max="100" value="0" data-id="${t.id}" aria-label="${t.label}音量">
+        <span class="amb-val" data-val="${t.id}">0%</span>`;
+      ambRowsEl.appendChild(row);
+    });
+    ambRowsEl.addEventListener('input', (e)=>{
+      const inp = e.target;
+      if (inp.tagName !== 'INPUT') return;
+      const id = inp.dataset.id, v = (+inp.value) / 100;
+      if (window.__audioSetVol) window.__audioSetVol(id, v);
+      const lab = ambRowsEl.querySelector(`[data-val="${id}"]`);
+      if (lab) lab.textContent = Math.round(v * 100) + '%';
+    });
+  }
+  AMB_TRACKS.forEach(t=>{
+    const inp = ambRowsEl.querySelector(`input[data-id="${t.id}"]`);
+    const lab = ambRowsEl.querySelector(`[data-val="${t.id}"]`);
+    const v = window.__audioGain ? window.__audioGain(t.id) : 0;
+    if (inp) inp.value = Math.round(v * 100);
+    if (lab) lab.textContent = Math.round(v * 100) + '%';
+  });
+}
+function toggleAmb(v){
+  if (!ambEl) return;
+  const on = (v === undefined) ? !ambEl.classList.contains('show') : v;
+  ambEl.classList.toggle('show', on);
+  if (on){
+    toggleMore(false);
+    tryStartMusic();
+    setTimeout(buildAmbUI, 150);
+  }
+}
+const btnAmbEl = document.getElementById('btnAmb');
+if (btnAmbEl) btnAmbEl.onclick = ()=> toggleAmb();
+if (ambEl) ambEl.addEventListener('click', (e)=>{ if (e.target === ambEl) toggleAmb(false); });
+
+/* —— 照片模式:2× 超采样 + 手写像素滤镜 + 画框(避免 ctx.filter 的 Safari 兼容问题) —— */
+const PHOTO_FILTERS = [
+  { id:'none', label:'原色' }, { id:'warm', label:'暖调' },
+  { id:'mono', label:'黑白' }, { id:'film', label:'胶片' },
+];
+let photoFilter = 'none';
+const photoEl   = document.getElementById('photo');
+const phFiltersEl = document.getElementById('phFilters');
+
+function buildPhotoUI(){
+  if (!phFiltersEl || phFiltersEl.children.length) return;
+  PHOTO_FILTERS.forEach(f=>{
+    const d = document.createElement('div');
+    d.className = 'ph-f' + (f.id === photoFilter ? ' on' : '');
+    d.textContent = f.label;
+    d.dataset.id = f.id;
+    d.onclick = ()=>{
+      photoFilter = f.id;
+      [...phFiltersEl.children].forEach(c=>c.classList.toggle('on', c.dataset.id === f.id));
+    };
+    phFiltersEl.appendChild(d);
+  });
+}
+function togglePhoto(v){
+  if (!photoEl) return;
+  const on = (v === undefined) ? !photoEl.classList.contains('show') : v;
+  photoEl.classList.toggle('show', on);
+  if (on){ toggleMore(false); buildPhotoUI(); }
+}
+function takePhoto(){
+  const src = renderer.domElement;
+  const oldPR = renderer.getPixelRatio();
+  const w = innerWidth, h = innerHeight;
+  try{
+    renderer.setPixelRatio(2);
+    renderer.setSize(w, h, false);
+    composer.setSize(w, h);
+    composer.render();
+    const W = src.width, H = src.height;
+    const tmp = document.createElement('canvas'); tmp.width = W; tmp.height = H;
+    const tg = tmp.getContext('2d');
+    tg.drawImage(src, 0, 0);
+    if (photoFilter !== 'none'){
+      const img = tg.getImageData(0, 0, W, H), d = img.data;
+      for(let i=0;i<d.length;i+=4){
+        let r = d[i], g2 = d[i+1], b = d[i+2];
+        if (photoFilter === 'mono'){
+          const l = r*.299 + g2*.587 + b*.114; r = g2 = b = l;
+        } else if (photoFilter === 'warm'){
+          r = Math.min(255, r*1.07 + 12); g2 = Math.min(255, g2*1.02 + 5); b = Math.min(255, b*.90);
+        } else {
+          const l = r*.299 + g2*.587 + b*.114;
+          r  = Math.min(255, l*.82 + r*.24);
+          g2 = Math.min(255, l*.82 + g2*.20);
+          b  = Math.min(255, l*.78 + b*.16);
+        }
+        d[i] = r; d[i+1] = g2; d[i+2] = b;
+      }
+      tg.putImageData(img, 0, 0);
+    }
+    const pad = Math.round(Math.min(W, H) * .045);
+    const capH = Math.round(pad * 1.2);
+    const out = document.createElement('canvas');
+    out.width = W + pad*2; out.height = H + pad*2 + capH;
+    const g = out.getContext('2d');
+    g.fillStyle = '#f4f1ea'; g.fillRect(0, 0, out.width, out.height);
+    g.drawImage(tmp, pad, pad);
+    g.fillStyle = '#3a3226';
+    g.textAlign = 'center';
+    g.font = `${Math.max(14, Math.round(pad*.5))}px Georgia, "Songti SC", SimSun, serif`;
+    g.fillText('FOREST CABIN', out.width / 2, H + pad*2 + Math.round(capH*.72));
+    out.toBlob(blob=>{
+      if (!blob) return;
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = '森林小屋-' + photoFilter + '-' + Date.now() + '.png';
+      a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href), 5000);
+      toast('照片已保存');
+    }, 'image/png');
+  }catch(err){
+    toast('导出失败');
+  }finally{
+    renderer.setPixelRatio(oldPR);
+    renderer.setSize(w, h, false);
+    composer.setSize(w, h);
+    composer.render();
+  }
+}
+const btnShotEl = document.getElementById('btnShot');
+if (btnShotEl) btnShotEl.onclick = ()=> togglePhoto();
+const phShootEl = document.getElementById('phShoot');
+if (phShootEl) phShootEl.onclick = takePhoto;
+if (photoEl) photoEl.addEventListener('click', (e)=>{ if (e.target === photoEl) togglePhoto(false); });
+
+/* —— 专注番茄钟:deadline 锚定(performance.now),后台节流也不漂移 —— */
+const FOCUS = { total: 25*60*1000, deadline: 0, running: false, timer: null };
+const fcTimeEl = document.getElementById('fcTime');
+const fcFillEl = document.getElementById('fcFill');
+function fcFmt(ms){
+  const s = Math.max(0, Math.ceil(ms / 1000));
+  return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+}
+function focusRender(left){
+  if (fcTimeEl) fcTimeEl.textContent = fcFmt(left);
+  if (fcFillEl) fcFillEl.style.width = (100 * (1 - left / FOCUS.total)).toFixed(1) + '%';
+}
+function focusTick(){
+  if (!FOCUS.running) return;
+  const left = Math.max(0, FOCUS.deadline - performance.now());
+  focusRender(left);
+  if (left <= 0){ focusFinish(); return; }
+  FOCUS.timer = setTimeout(focusTick, 250);
+}
+function focusStart(){
+  tryStartMusic();
+  FOCUS.running = true;
+  FOCUS.deadline = performance.now() + FOCUS.total;
+  const b = document.getElementById('fcStart');
+  if (b) b.textContent = '暂停';
+  focusTick();
+  toast('专注开始 · 25 分钟');
+}
+function focusPause(){
+  FOCUS.running = false;
+  clearTimeout(FOCUS.timer);
+  const b = document.getElementById('fcStart');
+  if (b) b.textContent = '继续';
+  focusRender(Math.max(0, FOCUS.deadline - performance.now()));
+}
+function focusReset(){
+  FOCUS.running = false;
+  clearTimeout(FOCUS.timer);
+  const b = document.getElementById('fcStart');
+  if (b) b.textContent = '开始';
+  focusRender(FOCUS.total);
+}
+function focusFinish(){
+  FOCUS.running = false;
+  clearTimeout(FOCUS.timer);
+  const b = document.getElementById('fcStart');
+  if (b) b.textContent = '开始';
+  focusRender(FOCUS.total);
+  if (window.__audioChime) window.__audioChime();
+  toast('专注完成 · 起来走走');
+}
+function toggleFocus(v){
+  const el = document.getElementById('focus');
+  if (!el) return;
+  const on = (v === undefined) ? !el.classList.contains('show') : v;
+  el.classList.toggle('show', on);
+  if (on){
+    toggleMore(false);
+    focusRender(FOCUS.running ? Math.max(0, FOCUS.deadline - performance.now()) : FOCUS.total);
+  }
+}
+const btnFocusEl = document.getElementById('btnFocus');
+if (btnFocusEl) btnFocusEl.onclick = ()=> toggleFocus();
+const fcStartEl = document.getElementById('fcStart');
+if (fcStartEl) fcStartEl.onclick = ()=>{ FOCUS.running ? focusPause() : focusStart(); };
+const fcResetEl = document.getElementById('fcReset');
+if (fcResetEl) fcResetEl.onclick = focusReset;
+
 addEventListener('keydown', (e)=>{
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   const tag = (e.target && e.target.tagName) || '';
   if (tag === 'INPUT' || tag === 'TEXTAREA') return;
   const k = e.key.toLowerCase();
   if (e.key === '?' || (k === '/' && e.shiftKey)){ e.preventDefault(); toggleHelp(); return; }
-  if (e.key === 'Escape'){ toggleHelp(false); return; }
+  if (e.key === 'Escape'){ toggleHelp(false); if (immersive) setImmersive(false); return; }
+  if (k === 'i'){ setImmersive(!immersive); return; }
   if (k === 'w'){
     const i = WEATHER_KEYS.indexOf(curWeather);
     setWeather(WEATHER_KEYS[(i+1) % WEATHER_KEYS.length]);
@@ -2157,18 +2699,6 @@ applyBright();
 setTimeout(()=>{ if (!sessionStorage.getItem('cabin_hint')) {
   toast('按 ? 查看全部快捷键'); try{ sessionStorage.setItem('cabin_hint','1'); }catch(_){}
 } }, 6200);
-
-/* —— 截图:保存当前画面 —— */
-const btnShot = document.getElementById('btnShot');
-btnShot.onclick = ()=>{
-  composer.render();
-  const a = document.createElement('a');
-  a.download = '森林小屋-' + new Date().toISOString().slice(0,19).replace(/[:T]/g,'-') + '.jpg';
-  a.href = renderer.domElement.toDataURL('image/jpeg', .92);
-  a.click();
-  btnShot.textContent = '已保存';
-  setTimeout(()=>{ btnShot.textContent = '截图'; }, 1600);
-};
 
 let hudTimer;
 function wakeHud(){
@@ -2425,6 +2955,83 @@ function buildAudio(){
     s.connect(f); f.connect(g); g.connect(ambBus);
     s.start(t0); s.stop(t0 + 3.4);
   };
+
+  /* —— 环境音混音器:篝火 / 虫鸣 / 落雪(参数参考 ambiently, MIT) —— */
+  // 篝火:棕噪低通底噪 + 随机爆裂颗粒
+  const fireG = ctx.createGain(); fireG.gain.value = 0; fireG.connect(ambBus);
+  {
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 520;
+    const s = noiseLoop(); s.connect(lp); lp.connect(fireG);
+  }
+  const fireCrackle = ()=>{
+    if (fireG.gain.value > .002){
+      const t0 = ctx.currentTime;
+      const s = ctx.createBufferSource(); s.buffer = noiseBuf;
+      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass';
+      bp.frequency.value = 800 + Math.random()*3000; bp.Q.value = 1 + Math.random()*3;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0, t0);
+      g.gain.linearRampToValueAtTime(.10 + Math.random()*.18, t0 + .004);
+      g.gain.exponentialRampToValueAtTime(.0008, t0 + .03 + Math.random()*.05);
+      s.connect(bp); bp.connect(g); g.connect(fireG);
+      s.start(t0); s.stop(t0 + .14);
+    }
+    setTimeout(fireCrackle, 40 + Math.random()*260);
+  };
+  fireCrackle();
+
+  // 虫鸣:正弦载波 + 短促包络(夏夜)
+  const cricketG = ctx.createGain(); cricketG.gain.value = 0; cricketG.connect(ambBus);
+  const cricketChirp = ()=>{
+    if (cricketG.gain.value > .002){
+      const t0 = ctx.currentTime;
+      const o = ctx.createOscillator(); o.type = 'sine';
+      o.frequency.value = 3900 + Math.random()*500;
+      const g = ctx.createGain();
+      const n = 3 + (Math.random()*3|0);
+      g.gain.setValueAtTime(0, t0);
+      for(let i=0;i<n;i++){
+        g.gain.linearRampToValueAtTime(.045, t0 + i*.09 + .012);
+        g.gain.linearRampToValueAtTime(0,    t0 + i*.09 + .062);
+      }
+      o.connect(g); g.connect(cricketG);
+      o.start(t0); o.stop(t0 + n*.09 + .12);
+    }
+    setTimeout(cricketChirp, 900 + Math.random()*2600);
+  };
+  cricketChirp();
+
+  // 落雪:极轻的高频嘶声
+  const snowGain = ctx.createGain(); snowGain.gain.value = 0; snowGain.connect(ambBus);
+  {
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 2600;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass';  lp.frequency.value = 6800;
+    const s = noiseLoop(); s.connect(hp); hp.connect(lp); lp.connect(snowGain);
+  }
+
+  A.tracks = { rain:rainG, wind:windG, fire:fireG, cricket:cricketG, snow:snowGain };
+  A.manual = {};                       // 用户手动调过的轨,不再被场景自动覆盖
+  A.setTrack = (name, v)=>{
+    const g = A.tracks[name]; if (!g) return;
+    g.gain.setTargetAtTime(clamp(v,0,1), ctx.currentTime, .08);
+  };
+  A.setVolume = (name, v)=>{ A.manual[name] = true; A.setTrack(name, v); };
+  // 场景自动音景:天气 + 居所 + 季节
+  A.setAmbience = (w, d, sn)=>{
+    const MIX = {
+      clear: { rain:0,   wind:.26, snow:0 },
+      rain:  { rain:.55, wind:.44, snow:0 },
+      storm: { rain:.70, wind:.52, snow:0 },
+      snow:  { rain:0,   wind:.28, snow:.34 },
+      mist:  { rain:0,   wind:.16, snow:0 },
+    };
+    const m = MIX[w] || MIX.clear;
+    if (!A.manual.rain)  A.setTrack('rain',  m.rain);
+    if (!A.manual.wind)  A.setTrack('wind',  m.wind);
+    if (!A.manual.snow)  A.setTrack('snow',  m.snow);
+    if (!A.manual.fire)  A.setTrack('fire',  d === 'tent' ? .55 : 0);
+    if (!A.manual.cricket) A.setTrack('cricket', (sn === 'summer' && (w === 'clear' || w === 'mist')) ? .40 : 0);
+  };
   A.setWeather = (w)=>{
     const W = WEATHERS[w] || WEATHERS.clear, t0 = ctx.currentTime;
     rainG.gain.setTargetAtTime(W.rainA * .30, t0, .9);
@@ -2437,6 +3044,25 @@ function buildAudio(){
 window.__audioSetTheme = (name)=>{ if (audio) audio.setTheme(name); };
 window.__audioWeather = (w)=>{ if (audio && audio.setWeather) audio.setWeather(w); };
 window.__audioThunder = (delay)=>{ setTimeout(()=>{ if (audio && audio.thunder) audio.thunder(); }, delay || 0); };
+window.__audioAmbience = (w,d,s)=>{ if (audio && audio.setAmbience) audio.setAmbience(w,d,s); };
+window.__audioSetVol = (id, v)=>{ if (audio && audio.setVolume) audio.setVolume(id, v); };
+window.__audioGain = (id)=>{ if (audio && audio.tracks && audio.tracks[id]) return audio.tracks[id].gain.value; return 0; };
+// 专注结束提示音:C5-E5-G5 琶音(参考 hugesesame/pomodoro-timer, MIT)
+window.__audioChime = ()=>{
+  if (!audio || !audio.ctx) return;
+  const ctx = audio.ctx, t0 = ctx.currentTime;
+  [523.25, 659.25, 783.99].forEach((f, i)=>{
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.value = f + (Math.random() - .5) * 24;
+    const st = t0 + i * .14;
+    g.gain.setValueAtTime(.0001, st);
+    g.gain.linearRampToValueAtTime(.16, st + .05);
+    g.gain.exponentialRampToValueAtTime(.0001, st + 1.1);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(st); o.stop(st + 1.2);
+  });
+};
 
 function musicFade(v, tc=.5){
   if (!audio) return;
@@ -2451,6 +3077,10 @@ function tryStartMusic(){
   if (audio.ctx.state === 'running' && !musicStarted){
     musicStarted = true;
     musicFade(.85, 1.2);
+  }
+  // 音频上下文可能是首次手势才创建,补一次音景初始化
+  if (audio && audio.setAmbience){
+    audio.setAmbience(curWeather, curDwelling, state.season);
   }
 }
 btnMusic.onclick = ()=>{
@@ -2477,6 +3107,18 @@ renderer.setAnimationLoop(()=>{
   const t  = clock.elapsedTime;
   uTime.value = t;
   gradePass.uniforms.uTime.value = t;
+
+  // 沉浸模式:缓慢环绕运镜(与 OrbitControls 互斥)
+  if (immersive){
+    immT += dt;
+    const ang = immT * 0.10;
+    const r = 15.5 + Math.sin(immT * 0.21) * 2.4;
+    const h = 4.4 + Math.sin(immT * 0.17) * 1.5;
+    camera.position.set(Math.cos(ang) * r, h, Math.sin(ang) * r);
+    const ty = DWELLINGS[curDwelling].target.y;
+    controls.target.set(0, ty, 0);
+    camera.lookAt(0, ty, 0);
+  }
 
   // 天气粒子(雨丝 / 雪花)
   if (weatherPoints.visible){
@@ -2518,9 +3160,12 @@ renderer.setAnimationLoop(()=>{
   // 烛火 / 篝火摇曳
   for(const c of candleLights){
     const f = .84 + .16*Math.sin(t*6.7 + c.ph) + .07*Math.sin(t*12.3 + c.ph*2.1);
-    c.light.intensity = c.baseI * f;
-    c.flame.material.opacity = .9 * f;
-    c.flame.scale.set(c.w, c.h*f, 1);
+    const on = (c.lit === false) ? 0 : 1;
+    const k = on * (c.mul || 1);
+    c.light.intensity = c.baseI * f * k;
+    c.flame.material.opacity = .9 * f * on;
+    const sc = Math.sqrt(k > 0 ? k : 1);
+    c.flame.scale.set(c.w * sc, c.h * f * sc, 1);
   }
 
   // 炊烟
