@@ -89,10 +89,11 @@
     #gh { left: auto; right: 1.8vh; bottom: auto; top: 1.8vh; padding: 5px 10px; font-size: 10px; }
   }
 
-  /* 中屏:按钮收窄,避免与状态行/亮度条挤在一起 */
-  @media (max-width: 1240px){
-    #ui { max-width: 58vw; gap: 8px; }
-    .btn { font-size: 11px; padding: 7px 11px; letter-spacing: .14em; text-indent: .14em; }
+  /* 中屏:按钮收窄,9 个按钮保持一行
+  */
+  @media (max-width: 1380px){
+    #ui { max-width: 70vw; gap: 7px; }
+    .btn { font-size: 10.5px; padding: 6px 10px; letter-spacing: .08em; text-indent: .08em; }
   }
   /* 平板:按钮组整体落到底部一行,顶部只留状态行 */
   @media (max-width: 940px){
@@ -211,6 +212,7 @@
 <div id="ui">
   <button class="btn" id="btnSeason">季节 · 秋</button>
   <button class="btn" id="btnWeather">天气 · 晴</button>
+  <button class="btn" id="btnDwelling">居所 · 小屋</button>
   <button class="btn" id="btnTheme">主题 · 无</button>
   <button class="btn" id="btnMusic">音乐 · 开</button>
   <button class="btn" id="btnCruise">巡航 · 开</button>
@@ -236,6 +238,7 @@
       <dt>[ / ]</dt><dd>亮度 ±10%</dd>
       <dt>1 2 3 4</dt><dd>春 / 夏 / 秋 / 冬</dd>
       <dt>W</dt><dd>切换天气(晴雨雷雪雾)</dd>
+      <dt>H</dt><dd>切换居所(小屋/帐篷/房车/树屋)</dd>
       <dt>T</dt><dd>切换节日主题</dd>
       <dt>C</dt><dd>开关自动巡航</dd>
       <dt>F</dt><dd>电影画幅</dd>
@@ -302,6 +305,9 @@ const lerp=(a,b,t)=>a+(b-a)*t;
 /* ============================================================
    0.5 设备性能分级(移动端降档,保证 60fps 下限)
 ============================================================ */
+// 启动瞬间快照 URL 参数:后续 syncUrl 会改写地址栏,不能指望再读
+const INIT_Q = new URLSearchParams(location.search);
+
 const PERF = (()=>{
   const cores  = navigator.hardwareConcurrency || 4;
   const coarse = matchMedia('(pointer:coarse)').matches;
@@ -975,6 +981,166 @@ const planterFlowers = new THREE.Group();
   }
   cabin.add(planterFlowers);
 }
+
+/* ============================================================
+   6.6 可选居所:帐篷 / 房车 / 树屋(与原有小屋互斥显示)
+============================================================ */
+const DWELLING_KEYS  = ['cabin','tent','rv','treehouse'];
+const DWELLING_LABEL = { cabin:'小屋', tent:'帐篷', rv:'房车', treehouse:'树屋' };
+
+const matCanvasW  = new THREE.MeshStandardMaterial({ color:0xd9c6a3, roughness:.95, side:THREE.DoubleSide });
+const matCanvasD  = new THREE.MeshStandardMaterial({ color:0xb59d7a, roughness:.95, side:THREE.DoubleSide });
+const matCanvasRd = new THREE.MeshStandardMaterial({ color:0xc0563f, roughness:.9,  side:THREE.DoubleSide });
+const matBodyRv   = new THREE.MeshStandardMaterial({ color:0xe8ddc6, roughness:.52, metalness:.14 });
+const matSteel    = new THREE.MeshStandardMaterial({ color:0xc2c7cd, roughness:.4, metalness:.55 });
+const matGlassW   = new THREE.MeshStandardMaterial({ color:0x1b2630, emissive:0xffb066, emissiveIntensity:.9, roughness:.25 });
+const matLeafDk   = new THREE.MeshStandardMaterial({ color:0x4a6440, roughness:.95 });
+
+/* —— 帐篷:A 字形帆布 + 门前篝火 —— */
+const tentGroup = new THREE.Group(); tentGroup.visible = false; scene.add(tentGroup);
+{
+  const TW = 1.85, TH = 2.75, TD = 4.4;
+  const th = Math.atan2(TW, TH), TL = Math.hypot(TW, TH);
+  for(const s of [-1,1]){
+    const p = new THREE.Mesh(new THREE.BoxGeometry(.06, TL*1.02, TD), matCanvasW);
+    p.position.set(s*TW/2, TH/2, 0); p.rotation.z = s*th;
+    p.castShadow = true; tentGroup.add(p);
+  }
+  const tri = new THREE.Shape();
+  tri.moveTo(-TW,0); tri.lineTo(TW,0); tri.lineTo(0,TH); tri.closePath();
+  const backP = new THREE.Mesh(new THREE.ShapeGeometry(tri), matCanvasD);
+  backP.position.z = -TD/2; backP.rotation.y = Math.PI; tentGroup.add(backP);
+  const ground = new THREE.Mesh(new THREE.BoxGeometry(TW*2.05, .05, TD*1.02), matCanvasD);
+  ground.position.y = .03; tentGroup.add(ground);
+  // 门帘(卷起的一角)
+  const flap = new THREE.Mesh(new THREE.PlaneGeometry(TW*.9, 1.7), matCanvasRd);
+  flap.position.set(-TW*.42, 1.25, TD/2-.06); flap.rotation.z = .18; tentGroup.add(flap);
+  // 旗杆
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,1.5,6), matWoodWarm);
+  pole.position.set(TW+.28, .75, TD/2-.2); tentGroup.add(pole);
+  const flag = new THREE.Mesh(new THREE.PlaneGeometry(.66,.38), matCanvasRd);
+  flag.position.set(TW+.62, 1.3, TD/2-.2); flag.rotation.y = .35; tentGroup.add(flag);
+  // 内部暖光
+  const gl = new THREE.PointLight(0xffb066, .8, 4.8, 2);
+  gl.position.set(0, .8, 0); tentGroup.add(gl);
+  // 篝火:石圈 + 柴 + 火苗
+  const FX = -3.6, FZ = 1.7;
+  for(let i=0;i<8;i++){
+    const a = i/8*Math.PI*2;
+    const st = new THREE.Mesh(new THREE.SphereGeometry(.17,6,5), matConc);
+    st.position.set(FX+Math.cos(a)*.66, .09, FZ+Math.sin(a)*.66);
+    st.scale.y = .7; tentGroup.add(st);
+  }
+  for(let i=0;i<3;i++){
+    const log = new THREE.Mesh(new THREE.CylinderGeometry(.07,.08,.95,6), matWoodWarm);
+    log.rotation.z = Math.PI/2; log.rotation.y = i*1.05;
+    log.position.set(FX, .2+i*.02, FZ); tentGroup.add(log);
+  }
+  const fFlame = new THREE.Sprite(new THREE.SpriteMaterial({ map:fireGlowTex, color:0xffb257,
+    transparent:true, opacity:.95, blending:THREE.AdditiveBlending, depthWrite:false, fog:false }));
+  fFlame.scale.set(.9,1.2,1); fFlame.position.set(FX, .78, FZ); tentGroup.add(fFlame);
+  const fLight = new THREE.PointLight(0xff9a3c, 1.2, 6.5, 2);
+  fLight.position.set(FX, .85, FZ); tentGroup.add(fLight);
+  candleLights.push({ light:fLight, flame:fFlame, baseI:1.2, w:.9, h:1.2, ph:rand(0,6.28) });
+}
+
+/* —— 房车:厢式车身 + 遮阳篷 + 四轮 —— */
+const rvGroup = new THREE.Group(); rvGroup.visible = false; scene.add(rvGroup);
+{
+  const chassis = new THREE.Mesh(new THREE.BoxGeometry(7.6,.3,2.4), matBlackM);
+  chassis.position.set(.3, .95, 0); rvGroup.add(chassis);
+  const body = new THREE.Mesh(new THREE.BoxGeometry(5.6,2.4,2.5), matBodyRv);
+  body.position.set(-.5, 2.3, 0); body.castShadow = true; rvGroup.add(body);
+  const cab = new THREE.Mesh(new THREE.BoxGeometry(1.7,1.8,2.4), matBodyRv);
+  cab.position.set(3.15, 2.0, 0); cab.castShadow = true; rvGroup.add(cab);
+  const wind = new THREE.Mesh(new THREE.PlaneGeometry(1.5,.8), matGlassW);
+  wind.position.set(4.02, 2.35, 0); wind.rotation.y = Math.PI/2; rvGroup.add(wind);
+  for(const s of [-1,1]){
+    const w = new THREE.Mesh(new THREE.PlaneGeometry(1.45,.72), matGlassW);
+    w.position.set(-1.35, 2.58, s*1.26); w.rotation.y = s>0?0:Math.PI; rvGroup.add(w);
+  }
+  const door = new THREE.Mesh(new THREE.PlaneGeometry(.9,1.7), matCanvasD);
+  door.position.set(.95, 1.98, 1.26); rvGroup.add(door);
+  for(const x of [-1.9, 2.6]) for(const z of [-1.3,1.3]){
+    const wh = new THREE.Mesh(new THREE.CylinderGeometry(.55,.55,.4,14), matBlack);
+    wh.rotation.x = Math.PI/2; wh.position.set(x,.55,z); wh.castShadow = true; rvGroup.add(wh);
+  }
+  const awning = new THREE.Mesh(new THREE.BoxGeometry(4.4,.06,2.1), matCanvasRd);
+  awning.position.set(-.7, 3.24, 2.15); awning.rotation.x = .22;
+  awning.castShadow = true; rvGroup.add(awning);
+  for(const x of [-2.7, 1.2]){
+    const p = new THREE.Mesh(new THREE.CylinderGeometry(.035,.035,2.7,6), matSteel);
+    p.position.set(x, 1.35, 3.12); rvGroup.add(p);
+  }
+  const rack = new THREE.Mesh(new THREE.BoxGeometry(3.2,.08,.9), matSteel);
+  rack.position.set(-.9, 3.55, 0); rvGroup.add(rack);
+  const gl = new THREE.PointLight(0xffb066, .85, 5.5, 2);
+  gl.position.set(-.5, 2.2, 0); rvGroup.add(gl);
+}
+
+/* —— 树屋:树干 + 平台 + 小屋 + 绳梯 —— */
+const treeGroup = new THREE.Group(); treeGroup.visible = false; scene.add(treeGroup);
+{
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(.7,.95,7.4,10), matTrunk);
+  trunk.position.y = 3.7; trunk.castShadow = true; treeGroup.add(trunk);
+  for(const [sx,sz] of [[-1,1],[1,1],[-1,-1],[1,-1]]){
+    const strut = new THREE.Mesh(new THREE.CylinderGeometry(.09,.09,3.0,6), matWoodDk);
+    strut.position.set(sx*1.7, 3.4, sz*1.7);
+    strut.rotation.z = sx*.14; strut.rotation.x = -sz*.14; treeGroup.add(strut);
+  }
+  const platform = new THREE.Mesh(new THREE.BoxGeometry(5.0,.26,5.0), matWoodWarm);
+  platform.position.y = 4.75; platform.castShadow = true; treeGroup.add(platform);
+  const hut = new THREE.Mesh(new THREE.BoxGeometry(3.2,2.1,3.0), matDeck);
+  hut.position.y = 5.95; hut.castShadow = true; treeGroup.add(hut);
+  for(const s of [-1,1]){
+    const rp = new THREE.Mesh(new THREE.BoxGeometry(2.15,.12,3.4), matRoofM);
+    rp.position.set(s*.85, 7.3, 0); rp.rotation.z = s*.55;
+    rp.castShadow = true; treeGroup.add(rp);
+  }
+  for(const x of [-.8,.8]){
+    const w = new THREE.Mesh(new THREE.PlaneGeometry(.8,.7), matGlassW);
+    w.position.set(x, 6.2, 1.52); treeGroup.add(w);
+  }
+  const doorT = new THREE.Mesh(new THREE.PlaneGeometry(.75,1.4), matWoodDk);
+  doorT.position.set(0, 5.6, 1.52); treeGroup.add(doorT);
+  for(const z of [-2.44,2.44]){
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(5.0,.09,.09), matWoodWarm);
+    rail.position.set(0,5.55,z); treeGroup.add(rail);
+  }
+  for(const x of [-2.44,2.44]){
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(.09,.09,5.0), matWoodWarm);
+    rail.position.set(x,5.55,0); treeGroup.add(rail);
+  }
+  // 绳梯
+  for(let i=0;i<10;i++){
+    const step = new THREE.Mesh(new THREE.BoxGeometry(.85,.07,.07), matWoodDk);
+    step.position.set(-2.5, 4.5-i*.46, 1.2); treeGroup.add(step);
+  }
+  for(const z of [.78,1.62]){
+    const rope = new THREE.Mesh(new THREE.CylinderGeometry(.022,.022,4.7,5), matWoodDk);
+    rope.position.set(-2.5, 2.3, z); treeGroup.add(rope);
+  }
+  // 树冠(抬高,避免盖住屋顶)
+  for(const [x,y,z,r] of [[0,9.9,0,2.2],[-2.1,9.1,.6,1.5],[2.0,9.3,-.7,1.4],[.5,10.5,1.2,1.3]]){
+    const leaf = new THREE.Mesh(new THREE.SphereGeometry(r,9,7), matLeafDk);
+    leaf.position.set(x,y,z); leaf.castShadow = true; treeGroup.add(leaf);
+  }
+  const gl = new THREE.PointLight(0xffb066, .95, 6.5, 2);
+  gl.position.set(0, 6.0, 0); treeGroup.add(gl);
+}
+
+const DWELLINGS = {
+  cabin:     { label:'小屋', group:cabin,     smoke:new THREE.Vector3(1.9,5.15,-1.0),
+               target:new THREE.Vector3(0,2.15,0),  cam:new THREE.Vector3(3.4,3.6,13.5) },
+  tent:      { label:'帐篷', group:tentGroup, smoke:new THREE.Vector3(-3.6,1.4,1.7),
+               target:new THREE.Vector3(-1.0,1.3,0), cam:new THREE.Vector3(3.2,2.9,11.2) },
+  rv:        { label:'房车', group:rvGroup,   smoke:new THREE.Vector3(2.6,3.7,-.8),
+               target:new THREE.Vector3(.2,2.1,0),  cam:new THREE.Vector3(3.8,3.4,13.2) },
+  treehouse: { label:'树屋', group:treeGroup, smoke:new THREE.Vector3(1.4,9.9,-.8),
+               target:new THREE.Vector3(0,5.6,0),   cam:new THREE.Vector3(4.2,7.4,14.5) },
+};
+// 炊烟锚点(随居所切换)
+const smokeAnchor = new THREE.Vector3(1.9, 5.15, -1.0);
 { // —— 壁灯:烛台蜡烛(火焰 + 微弱点光源) + 压暗后的窗光
   for(const x of [-3.2, 1.05]){
     const g = new THREE.Group();
@@ -989,16 +1155,16 @@ const planterFlowers = new THREE.Group();
     const l = new THREE.PointLight(0xffb45c, .5, 3.4, 2);
     l.position.y = .29; g.add(l);
     g.position.set(x, 1.68, CD/2+.1); cabin.add(g);
-    candleLights.push({ light:l, flame, baseI:.5, ph:rand(0,6.28) });
+    candleLights.push({ light:l, flame, baseI:.5, w:.17, h:.25, ph:rand(0,6.28) });
   }
-  const mk = (x,z,i)=>{ const l = new THREE.PointLight(0xffb066, i, 5.5, 2); l.position.set(x,1.75,z); scene.add(l); return l; };
+  const mk = (x,z,i)=>{ const l = new THREE.PointLight(0xffb066, i, 5.5, 2); l.position.set(x,1.75,z); cabin.add(l); return l; };
   winLights.push(mk(-3.2, CD/2+.45, 1.05), mk(1.05, CD/2+.45, 1.05), mk(0, CD/2+.9, .75));
   const poolMat = new THREE.MeshBasicMaterial({ map:fireGlowTex, color:0xffab55,
     transparent:true, opacity:.12, blending:THREE.AdditiveBlending, depthWrite:false, fog:false });
   glowPoolMats.push(poolMat);
   for(const [x,z,s] of [[-3.2,3.5,1.6],[1.05,3.5,1.6],[0,3.7,1.9]]){
     const p = new THREE.Mesh(new THREE.PlaneGeometry(s,s*.66), poolMat);
-    p.rotation.x = -Math.PI/2; p.position.set(x,.05,z); p.renderOrder = 2; scene.add(p);
+    p.rotation.x = -Math.PI/2; p.position.set(x,.05,z); p.renderOrder = 2; cabin.add(p);
   }
 }
 { // —— 现代方形踏步石
@@ -1227,6 +1393,12 @@ const PARTICLES = {
   autumn: { colors:[0xd98a3f,0xb5652f,0xc9a23f], size:.2,  speed:.5,  sway:.4, opacity:.85 },
   winter: { colors:[0xffffff,0xe8f1fa],          size:.22, speed:.42, sway:.3, opacity:.9  },
   halloween: { colors:[0xb48ad8,0x8a7fb8],       size:.18, speed:.2,  sway:.4, opacity:.3  },
+  springFest:  { colors:[0xd63b2e,0xf0c65a,0xe0553a], size:.18, speed:.45, sway:.5,  opacity:.8  },
+  lanternFest: { colors:[0xfff0c8,0xffd9a0],          size:.16, speed:.12, sway:.3,  opacity:.5  },
+  qingming:    { colors:[0x8fae86,0xc8d8bc],          size:.16, speed:.3,  sway:.45, opacity:.55 },
+  dragonBoat:  { colors:[0x4a7040,0xc8342c,0x8fae86], size:.17, speed:.35, sway:.4,  opacity:.7  },
+  qixi:        { colors:[0xffb6d0,0xffd6e8,0xff9ec4], size:.2,  speed:.25, sway:.5,  opacity:.8  },
+  midAutumn:   { colors:[0xf0c65a,0xe6b84a],          size:.14, speed:.22, sway:.35, opacity:.75 },
 };
 function setParticles(mode){
   const cfg = PARTICLES[mode] || PARTICLES.autumn;
@@ -1297,6 +1469,174 @@ const SEASONS = {
     captions:['炉火正旺 · 雪落无声','万籁俱寂 · 唯有雪光','围炉煮茶 · 冬夜温柔','踏雪归来 · 灯火可亲'],
   },
 };
+/* ============================================================
+   9.5 中国传统节日场景道具(与居所解耦,布置在居所外围)
+============================================================ */
+const matRedL   = new THREE.MeshStandardMaterial({ color:0xc8342c, emissive:0xc8342c, emissiveIntensity:.6, roughness:.6 });
+const matGold   = new THREE.MeshStandardMaterial({ color:0xd8a94a, metalness:.65, roughness:.35 });
+const matMoon   = new THREE.MeshStandardMaterial({ color:0xfff2cf, emissive:0xfff0c8, emissiveIntensity:1.1, roughness:.7 });
+const matGreenF = new THREE.MeshStandardMaterial({ color:0x4a7040, roughness:.9 });
+const matWhiteF = new THREE.MeshStandardMaterial({ color:0xf4eee2, roughness:.9 });
+const matCake   = new THREE.MeshStandardMaterial({ color:0xc98a4a, roughness:.75 });
+
+const FESTIVALS = {};
+function festGroup(name){
+  const g = new THREE.Group(); g.visible = false; scene.add(g); FESTIVALS[name] = g; return g;
+}
+// 灯笼:球体 + 金顶 + 流苏,可选点光源
+function lantern(g, x, y, z, color, s, lightPower){
+  const grp = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.SphereGeometry(.26,10,8),
+    new THREE.MeshStandardMaterial({ color, emissive:color, emissiveIntensity:1.5, roughness:.65 }));
+  body.scale.y = .85; grp.add(body);
+  const capT = new THREE.Mesh(new THREE.CylinderGeometry(.09,.13,.06,8), matGold);
+  capT.position.y = .25; grp.add(capT);
+  const tassel = new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.28,4), matRedL);
+  tassel.position.y = -.34; grp.add(tassel);
+  if (lightPower > 0){ const l = new THREE.PointLight(color, lightPower, 4.5, 2); grp.add(l); }
+  grp.position.set(x,y,z); grp.scale.setScalar(s); g.add(grp);
+  return grp;
+}
+// 托盘(承载节令食物)
+function platter(g, x, z){
+  const t = new THREE.Mesh(new THREE.CylinderGeometry(.55,.6,.06,14), matWoodWarm);
+  t.position.set(x,.84,z); g.add(t);
+  const leg = new THREE.Mesh(new THREE.CylinderGeometry(.09,.12,.82,8), matWoodDk);
+  leg.position.set(x,.42,z); g.add(leg);
+}
+
+/* —— 春节:灯笼杆 + 鞭炮 + 年桔 —— */
+{
+  const g = festGroup('springFest');
+  for(const s of [-1,1]){
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(.05,.06,3.6,8), matWoodDk);
+    pole.position.set(s*4.6, 1.8, 4.2); g.add(pole);
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(1.0,.06,.06), matWoodDk);
+    arm.position.set(s*4.1, 3.5, 4.2); g.add(arm);
+    lantern(g, s*3.9, 3.02, 4.2, 0xd63b2e, 1.15, s>0 ? .6 : 0);
+    lantern(g, s*4.32, 2.5, 4.2, 0xe0553a, .85, 0);
+    for(let i=0;i<7;i++){
+      const c = new THREE.Mesh(new THREE.CylinderGeometry(.045,.045,.16,6), matRedL);
+      c.position.set(s*(3.1+i*.05), 1.0-i*.16, 5.0); g.add(c);
+    }
+  }
+  platter(g, 0, 5.5);
+  for(const [x,z] of [[-.22,5.4],[.2,5.52],[0,5.66]]){
+    const o = new THREE.Mesh(new THREE.SphereGeometry(.15,8,7),
+      new THREE.MeshStandardMaterial({ color:0xe08a2a, roughness:.7 }));
+    o.position.set(x,.96,z); g.add(o);
+  }
+}
+
+/* —— 元宵:漂浮花灯 + 汤圆 + 灯谜 —— */
+{
+  const g = festGroup('lanternFest');
+  for(let i=0;i<7;i++){
+    const a = -1.1 + i*.37;
+    lantern(g, Math.sin(a)*5.2, 2.35 + Math.sin(i*1.7)*.7, 3.6 + Math.cos(a)*2.2,
+            [0xffd9a0,0xffb6a0,0xfff0c8][i%3], .9, i===3 ? .7 : 0);
+  }
+  for(const x of [-2.4,2.4]){
+    const strip = new THREE.Mesh(new THREE.PlaneGeometry(.34,1.5), matRedL);
+    strip.position.set(x, 2.6, 4.9); g.add(strip);
+  }
+  platter(g, 0, 5.4);
+  const bowl = new THREE.Mesh(new THREE.CylinderGeometry(.42,.32,.24,14), matWhiteF);
+  bowl.position.set(0,1.0,5.4); g.add(bowl);
+  for(const [x,z] of [[-.12,5.32],[.13,5.4],[0,5.5]]){
+    const b = new THREE.Mesh(new THREE.SphereGeometry(.1,8,7), matWhiteF);
+    b.position.set(x,1.08,z); g.add(b);
+  }
+}
+
+/* —— 清明:柳枝 + 青团 + 纸鸢 —— */
+{
+  const g = festGroup('qingming');
+  for(const s of [-1,1]){
+    for(let i=0;i<5;i++){
+      const br = new THREE.Mesh(new THREE.CylinderGeometry(.025,.035,1.8,5), matGreenF);
+      br.position.set(s*(4.2+i*.12), 1.4, 4.4+i*.08);
+      br.rotation.z = s*(.1+i*.05); g.add(br);
+      const leaf = new THREE.Mesh(new THREE.SphereGeometry(.16,6,5), matGreenF);
+      leaf.position.set(s*(4.2+i*.12) - s*.18, 2.25-i*.1, 4.4+i*.08);
+      leaf.scale.set(1.3,.6,1); g.add(leaf);
+    }
+  }
+  platter(g, 0, 5.4);
+  for(const [x,z] of [[-.18,5.3],[.18,5.38],[0,5.55]]){
+    const q = new THREE.Mesh(new THREE.SphereGeometry(.13,8,6), matGreenF);
+    q.scale.y = .72; q.position.set(x,.96,z); g.add(q);
+  }
+  const kite = new THREE.Group();
+  const kBody = new THREE.Mesh(new THREE.PlaneGeometry(.9,.9),
+    new THREE.MeshStandardMaterial({ color:0xe6c04a, side:THREE.DoubleSide, roughness:.8 }));
+  kBody.rotation.z = Math.PI/4; kite.add(kBody);
+  const tail = new THREE.Mesh(new THREE.PlaneGeometry(.12,.8), matRedL);
+  tail.position.y = -.85; kite.add(tail);
+  kite.position.set(-6.5, 7.6, 2.0); kite.rotation.y = .6; g.add(kite);
+}
+
+/* —— 端午:粽子 + 艾草束 + 香囊 —— */
+{
+  const g = festGroup('dragonBoat');
+  platter(g, 0, 5.4);
+  for(const [x,z,r] of [[-.2,5.3,.3],[.16,5.36,-.4],[0,5.55,.8]]){
+    const zong = new THREE.Mesh(new THREE.ConeGeometry(.19,.36,4), matGreenF);
+    zong.position.set(x,1.0,z); zong.rotation.y = r; g.add(zong);
+  }
+  for(const s of [-1,1]){
+    const grp = new THREE.Group();
+    for(let i=0;i<6;i++){
+      const st = new THREE.Mesh(new THREE.CylinderGeometry(.02,.03,1.3,5), matGreenF);
+      st.position.set(Math.cos(i)*.09, .65, Math.sin(i)*.09);
+      st.rotation.z = Math.cos(i)*.12; grp.add(st);
+    }
+    const tie = new THREE.Mesh(new THREE.CylinderGeometry(.075,.075,.09,8), matRedL);
+    tie.position.y = .55; grp.add(tie);
+    grp.position.set(s*3.6, .05, 4.9); g.add(grp);
+  }
+  lantern(g, 2.9, 2.4, 4.4, 0xc8342c, .55, 0);
+  lantern(g, -2.9, 2.4, 4.4, 0xd8a94a, .55, 0);
+}
+
+/* —— 七夕:鹊桥 + 粉灯 —— */
+{
+  const g = festGroup('qixi');
+  for(let i=0;i<16;i++){
+    const a = Math.PI*(i/15);
+    const dot = new THREE.Mesh(new THREE.SphereGeometry(.09,6,5),
+      new THREE.MeshStandardMaterial({ color:0xffd6e8, emissive:0xffd6e8, emissiveIntensity:1.6 }));
+    dot.position.set(Math.cos(a)*7, 5.2 + Math.sin(a)*1.9, -9); g.add(dot);
+  }
+  lantern(g, -3.4, 2.6, 4.6, 0xff9ec4, .9, .55);
+  lantern(g, 3.4, 2.6, 4.6, 0xffb6d0, .9, 0);
+  lantern(g, 0, 3.7, 5.4, 0xffd6e8, .7, 0);
+}
+
+/* —— 中秋:圆月 + 月饼 + 桂花 —— */
+{
+  const g = festGroup('midAutumn');
+  const moon = new THREE.Mesh(new THREE.SphereGeometry(3.0,24,18), matMoon);
+  moon.position.set(-6.5, 8.2, -24); g.add(moon);
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map:fireGlowTex, color:0xffe8b0,
+    transparent:true, opacity:.5, blending:THREE.AdditiveBlending, depthWrite:false, fog:false }));
+  halo.scale.set(18,18,1); halo.position.copy(moon.position); g.add(halo);
+  const ml = new THREE.PointLight(0xffe0a0, 1.2, 60, 2);
+  ml.position.set(-6.5,8.2,-24); g.add(ml);
+  platter(g, 0, 5.4);
+  for(const [x,z] of [[-.16,5.32],[.18,5.38],[0,5.55]]){
+    const cake = new THREE.Mesh(new THREE.CylinderGeometry(.155,.155,.075,12), matCake);
+    cake.position.set(x,.96,z); g.add(cake);
+  }
+  for(let i=0;i<14;i++){
+    const f = new THREE.Mesh(new THREE.SphereGeometry(.035,5,4),
+      new THREE.MeshStandardMaterial({ color:0xf0c65a, emissive:0xf0c65a, emissiveIntensity:.8 }));
+    f.position.set(rand(-3,3), .3+rand(0,.5), 5.0+rand(-.6,.8)); g.add(f);
+  }
+  lantern(g, -3.2, 2.5, 4.5, 0xffcf8a, .85, .5);
+  lantern(g, 3.2, 2.5, 4.5, 0xffc06a, .85, 0);
+}
+
 const THEMES = {
   none: { label:'无' },
   halloween: {
@@ -1314,6 +1654,56 @@ const THEMES = {
             spriteC:0xe4ecff, spriteS:40, spriteO:.9, stars:.85, mistC:0xdde5f0 },
     particles:'winter', window:0xffc06a, snow:true,
     captions:['铃儿响叮当 · 圣诞快乐','炉火与彩灯 · 温暖整个冬夜','雪花飘落 · 愿你所愿','槲寄生下 · 平安夜安好'],
+  },
+
+  /* —— 中国传统节日 —— */
+  springFest: {
+    label:'春节',
+    light:{ top:0x2a1620, horizon:0x9a3a28, sunC:0xff9a5a, sunI:1.8, fillC:0xd08a70, fillI:.55,
+            hemiI:.62, ambI:.17, fogC:0x5a2a24, fogD:.015, exp:1.0, sunPos:[-30,14,-12],
+            spriteC:0xff9a5a, spriteS:52, spriteO:.85, stars:.7, mistC:0xd0a080 },
+    particles:'springFest', window:0xff6a4a, fest:'springFest', weather:'snow',
+    captions:['爆竹声中 · 又是一年春','灯笼高挂 · 年味正浓','围炉守岁 · 岁岁平安','新年大吉 · 万事顺遂'],
+  },
+  lanternFest: {
+    label:'元宵',
+    light:{ top:0x1c1a2e, horizon:0x7a4a38, sunC:0xffc48a, sunI:1.1, fillC:0xa08ac0, fillI:.52,
+            hemiI:.56, ambI:.15, fogC:0x4a3a48, fogD:.014, exp:1.0, sunPos:[-24,22,-14],
+            spriteC:0xffd0a0, spriteS:44, spriteO:.85, stars:.8, mistC:0xc8b0b8 },
+    particles:'lanternFest', window:0xffb066, fest:'lanternFest', weather:'clear',
+    captions:['花灯如昼 · 上元安康','猜一枚灯谜 · 讨一年彩头','汤圆滚烫 · 团团圆圆','灯影摇曳 · 夜色温柔'],
+  },
+  qingming: {
+    label:'清明',
+    light:{ top:0x3a4a48, horizon:0xb8c0b0, sunC:0xd8e0c8, sunI:1.0, fillC:0x9ab0a8, fillI:.6,
+            hemiI:.66, ambI:.16, fogC:0x9aa89c, fogD:.017, exp:.98, sunPos:[-34,18,-16],
+            spriteC:0xe0e8d8, spriteS:30, spriteO:.55, stars:.2, mistC:0xc8d0c4 },
+    particles:'qingming', window:0xffc27a, fest:'qingming', weather:'rain',
+    captions:['清明时节 · 雨纷纷','插一枝柳 · 寄一份思念','青团微甜 · 山野新绿','纸鸢飞远 · 春风正好'],
+  },
+  dragonBoat: {
+    label:'端午',
+    light:{ top:0x2a3a34, horizon:0x9aa878, sunC:0xffd8a0, sunI:1.7, fillC:0x9ab088, fillI:.5,
+            hemiI:.62, ambI:.14, fogC:0x7a8a70, fogD:.012, exp:1.0, sunPos:[-36,20,-14],
+            spriteC:0xffd8a0, spriteS:48, spriteO:.85, stars:.35, mistC:0xc0c8b0 },
+    particles:'dragonBoat', window:0xffb066, fest:'dragonBoat', weather:'clear',
+    captions:['粽叶飘香 · 端午安康','龙舟破浪 · 一江争先','门插艾草 · 驱邪纳福','香囊随身 · 岁岁无忧'],
+  },
+  qixi: {
+    label:'七夕',
+    light:{ top:0x141a33, horizon:0x3a2a52, sunC:0xc0b0e0, sunI:.9, fillC:0x8a7ab0, fillI:.5,
+            hemiI:.5, ambI:.13, fogC:0x2a2440, fogD:.014, exp:.98, sunPos:[-20,26,-16],
+            spriteC:0xe0d8f8, spriteS:30, spriteO:.8, stars:1.0, mistC:0x9a8ac0 },
+    particles:'qixi', window:0xff9ec4, fest:'qixi', weather:'clear',
+    captions:['银河迢迢 · 鹊桥相会','一颗星 · 一个愿','穿针乞巧 · 月下相逢','夜色温柔 · 情意绵长'],
+  },
+  midAutumn: {
+    label:'中秋',
+    light:{ top:0x141c30, horizon:0x4a5470, sunC:0xd0d8f0, sunI:1.35, fillC:0x98a8c8, fillI:.58,
+            hemiI:.64, ambI:.18, fogC:0x2a3448, fogD:.013, exp:1.0, sunPos:[-24,28,-16],
+            spriteC:0xf0e8d0, spriteS:32, spriteO:.8, stars:.95, mistC:0xb0b8d0 },
+    particles:'midAutumn', window:0xffd28a, fest:'midAutumn', weather:'clear',
+    captions:['月满中秋 · 千里共婵娟','月饼切开 · 一人一角','桂子飘香 · 夜色如水','抬头是月 · 低头是家'],
   },
 };
 
@@ -1365,11 +1755,14 @@ function applyLook(skipCaptions){
   snowGroup.visible = S.snow || !!T.snow || curWeather==='snow';
   halloweenGroup.visible = state.theme==='halloween';
   christmasGroup.visible = state.theme==='christmas';
+  for(const k in FESTIVALS) FESTIVALS[k].visible = (T.fest === k);
   birdMode = state.theme==='halloween' ? 'bat' : 'bird';
   applyWindowGlow(T.window || S.window);
   document.getElementById('titleSub').textContent = 'FOREST CABIN · ' + (T.label!=='无'? T.label : S.label);
   if (!skipCaptions) restartCaptions(T.captions || S.captions);
   if (window.__audioSetTheme) window.__audioSetTheme(state.theme);
+  // 节日自带推荐天气(用户仍可手动改)
+  if (T.weather && T.weather !== curWeather && typeof setWeather === 'function') setWeather(T.weather);
   if (typeof updateStatus === 'function') updateStatus();
   if (typeof syncUrl === 'function') syncUrl();
 }
@@ -1478,6 +1871,28 @@ function setWeather(name){
   if (typeof syncUrl === 'function') syncUrl();
 }
 
+/* —— 居所切换:小屋 / 帐篷 / 房车 / 树屋 —— */
+let curDwelling = 'cabin';
+function setDwelling(name){
+  if (!DWELLINGS[name] || name === curDwelling) return;
+  curDwelling = name;
+  for(const k in DWELLINGS) DWELLINGS[k].group.visible = (k === name);
+  const D = DWELLINGS[name];
+  smokeAnchor.copy(D.smoke);
+  // 黑场过渡 + 相机重新构图
+  fadeEl.classList.add('on');
+  setTimeout(()=>{
+    controls.target.copy(D.target);
+    camera.position.copy(D.cam);
+    controls.update();
+    setTimeout(()=>fadeEl.classList.remove('on'), 120);
+  }, 340);
+  const b = document.getElementById('btnDwelling');
+  if (b) b.textContent = '居所 · ' + D.label;
+  if (typeof updateStatus === 'function') updateStatus();
+  if (typeof syncUrl === 'function') syncUrl();
+}
+
 /* ============================================================
    11. 后期
 ============================================================ */
@@ -1515,6 +1930,14 @@ controls.minPolarAngle = 1.08; controls.maxPolarAngle = 1.52;
 controls.target.set(0, 2.15, 0);
 controls.autoRotate = true; controls.autoRotateSpeed = .4;
 
+// 若 URL 指定了非默认居所,首次进入即按其构图
+if (curDwelling !== 'cabin'){
+  const D0 = DWELLINGS[curDwelling];
+  controls.target.copy(D0.target);
+  camera.position.copy(D0.cam);
+  controls.update();
+}
+
 let cruise = true, interacting = false, lastAct = performance.now();
 let introT = 0; const INTRO = 5.2;
 const introFrom = new THREE.Vector3(27, 11, 33), introTo = new THREE.Vector3(15, 5.6, 18);
@@ -1538,8 +1961,9 @@ btnCine.onclick = ()=>{
 // 季节 / 主题按钮
 const SEASON_KEYS = ['spring','summer','autumn','winter'];
 const SEASON_NAMES = { spring:'春', summer:'夏', autumn:'秋', winter:'冬' };
-const THEME_KEYS = ['none','halloween','christmas'];
-const THEME_NAMES = { none:'无', halloween:'万圣节', christmas:'圣诞节' };
+const THEME_KEYS = ['none','springFest','lanternFest','qingming','dragonBoat','qixi','midAutumn','halloween','christmas'];
+const THEME_NAMES = { none:'无', springFest:'春节', lanternFest:'元宵', qingming:'清明',
+                      dragonBoat:'端午', qixi:'七夕', midAutumn:'中秋', halloween:'万圣节', christmas:'圣诞节' };
 const btnSeason = document.getElementById('btnSeason');
 const btnTheme  = document.getElementById('btnTheme');
 btnSeason.onclick = ()=>{
@@ -1641,17 +2065,16 @@ function toast(msg){
 function updateStatus(){
   const el = document.getElementById('statusText');
   if (!el) return;
-  el.textContent =
-    `${SEASONS[state.season].label} · ${WEATHERS[curWeather].label} · ${brightLevel*10}%`;
+  el.textContent = `${SEASONS[state.season].label} · ${WEATHERS[curWeather].label} · ${DWELLING_LABEL[curDwelling]} · ${brightLevel*10}%`;
 }
 function syncUrl(){
   try{
-    const p = new URLSearchParams({ s:state.season, t:state.theme, w:curWeather, b:String(brightLevel) });
+    const p = new URLSearchParams({ s:state.season, t:state.theme, w:curWeather, d:curDwelling, b:String(brightLevel) });
     history.replaceState(null, '', location.pathname + '?' + p.toString());
   }catch(_){}
 }
 function shareLink(){
-  const p = new URLSearchParams({ s:state.season, t:state.theme, w:curWeather, b:String(brightLevel) });
+  const p = new URLSearchParams({ s:state.season, t:state.theme, w:curWeather, d:curDwelling, b:String(brightLevel) });
   const url = location.origin + location.pathname + '?' + p.toString();
   const ok = ()=>toast('链接已复制 · 打开即是当前画面');
   const fail = ()=>toast(url);
@@ -1661,15 +2084,19 @@ function shareLink(){
   }catch(_){ fail(); }
 }
 function readUrl(){
-  const p = new URLSearchParams(location.search);
-  const s = p.get('s'), t = p.get('t'), w = p.get('w'), b = parseInt(p.get('b') || '', 10);
+  const p = INIT_Q;
+  const s = p.get('s'), t = p.get('t'), w = p.get('w'), d = p.get('d'), b = parseInt(p.get('b') || '', 10);
   if (s && SEASONS[s]) state.season = s;
   if (t && THEME_KEYS.indexOf(t) >= 0) state.theme = t;
   if (w && WEATHERS[w]) curWeather = w;
+  if (d && DWELLINGS[d]) curDwelling = d;
   if (b >= 1 && b <= BRIGHT_STEPS) brightLevel = b;
   const bs = document.getElementById('btnSeason');  if (bs) bs.textContent = '季节 · ' + SEASONS[state.season].label;
   const bt = document.getElementById('btnTheme');   if (bt) bt.textContent = '主题 · ' + THEME_NAMES[state.theme];
   const bw = document.getElementById('btnWeather'); if (bw) bw.textContent = '天气 · ' + WEATHERS[curWeather].label;
+  const bd = document.getElementById('btnDwelling');if (bd) bd.textContent = '居所 · ' + DWELLING_LABEL[curDwelling];
+  for(const k in DWELLINGS) DWELLINGS[k].group.visible = (k === curDwelling);
+  smokeAnchor.copy(DWELLINGS[curDwelling].smoke);
   blSave(brightLevel);
 }
 function toggleHelp(v){
@@ -1690,6 +2117,11 @@ btnWeatherEl.onclick = ()=>{
   const i = WEATHER_KEYS.indexOf(curWeather);
   setWeather(WEATHER_KEYS[(i+1) % WEATHER_KEYS.length]);
 };
+const btnDwellingEl = document.getElementById('btnDwelling');
+btnDwellingEl.onclick = ()=>{
+  const i = DWELLING_KEYS.indexOf(curDwelling);
+  setDwelling(DWELLING_KEYS[(i+1) % DWELLING_KEYS.length]);
+};
 const btnShareEl = document.getElementById('btnShare');
 btnShareEl.onclick = shareLink;
 helpEl.addEventListener('click', ()=>toggleHelp(false));
@@ -1704,6 +2136,9 @@ addEventListener('keydown', (e)=>{
   if (k === 'w'){
     const i = WEATHER_KEYS.indexOf(curWeather);
     setWeather(WEATHER_KEYS[(i+1) % WEATHER_KEYS.length]);
+  } else if (k === 'h'){
+    const i = DWELLING_KEYS.indexOf(curDwelling);
+    setDwelling(DWELLING_KEYS[(i+1) % DWELLING_KEYS.length]);
   } else if (k === 't'){ document.getElementById('btnTheme').click(); }
   else if (k === 'c'){ document.getElementById('btnCruise').click(); }
   else if (k === 'f'){ document.getElementById('btnCine').click(); }
@@ -2076,12 +2511,12 @@ renderer.setAnimationLoop(()=>{
     flashEl.style.opacity = '0';
   }
 
-  // 烛火摇曳
+  // 烛火 / 篝火摇曳
   for(const c of candleLights){
     const f = .84 + .16*Math.sin(t*6.7 + c.ph) + .07*Math.sin(t*12.3 + c.ph*2.1);
     c.light.intensity = c.baseI * f;
     c.flame.material.opacity = .9 * f;
-    c.flame.scale.set(.17, .25*f, 1);
+    c.flame.scale.set(c.w, c.h*f, 1);
   }
 
   // 炊烟
@@ -2090,9 +2525,9 @@ renderer.setAnimationLoop(()=>{
     s.userData.phase = ph;
     const rise = ph*8.5;
     s.position.set(
-      CHIMNEY_TOP.x + Math.sin(ph*9)*.18 + ph*ph*2.2,
-      CHIMNEY_TOP.y + rise,
-      CHIMNEY_TOP.z + ph*ph*1.3 + Math.sin(ph*6)*.15
+      smokeAnchor.x + Math.sin(ph*9)*.18 + ph*ph*2.2,
+      smokeAnchor.y + rise,
+      smokeAnchor.z + ph*ph*1.3 + Math.sin(ph*6)*.15
     );
     s.scale.setScalar(.6 + ph*2.9);
     s.material.opacity = (1-ph) * .48 * sstep(0,.12,ph);
