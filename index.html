@@ -2235,7 +2235,11 @@ function restartCaptions(lines){
 }
 setTimeout(()=>{
   capRoot.classList.add('show');
-  restartCaptions(CAP_LINES);
+  // 初始进入(含 URL 指定主题)时,字幕跟随当前主题而非固定季节
+  if (!capTimer){
+    const T = THEMES[state.theme], S = SEASONS[state.season];
+    restartCaptions(T.captions || S.captions);
+  }
 }, 5400);
 
 /* ============================================================
