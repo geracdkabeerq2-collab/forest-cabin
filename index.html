@@ -86,7 +86,9 @@
   #more .btn { width: 100%; text-align: center; }
   body.idle #more { opacity: 0; }
   @media (max-width: 940px){
-    #more { top: auto; bottom: 13vh; left: 50%; right: auto; transform: translateX(-50%); }
+    #more { top: auto; bottom: 13vh; left: 50%; right: auto; transform: translateX(-50%);
+            max-width: min(330px, calc(100vw - 86px));
+            grid-template-columns: repeat(3, minmax(84px, 1fr)); }
   }
 
   /* ---- 场景预设卡片面板 ---- */
@@ -199,6 +201,10 @@
   .v3-row .btn { flex: 1; text-align: center; }
   .v3-list { margin-top: 12px; font-size: 11.5px; color: #b0a48e; line-height: 1.7; }
   .v3-list li { list-style: none; padding: 5px 0; border-bottom: 1px solid rgba(233,222,203,.07); }
+
+  /* ---- 观星模式:临时隐藏地面元素干扰 ---- */
+  body.star-mode #caption { opacity: 0 !important; }
+  body.star-mode #hud { opacity: 0 !important; }
 
   /* ---- 沉浸模式:隐藏全部界面 ---- */
   body.immersive #ui, body.immersive #more, body.immersive #status, body.immersive #bright,
@@ -361,6 +367,8 @@
   <button class="btn" id="btnWish">许愿</button>
   <button class="btn" id="btnCapsule">胶囊</button>
   <button class="btn" id="btnCheckin">签到 · 0天</button>
+  <button class="btn" id="btnStory">故事</button>
+  <button class="btn" id="btnTerm">节气</button>
 </div>
 <div id="status"><span class="dot"></span><span id="statusText">秋 · 晴 · 60%</span></div>
 <a id="gh" href="https://github.com/geracdkabeerq2-collab/forest-cabin" target="_blank" rel="noopener"
@@ -409,6 +417,13 @@
 <div id="capsule" class="panel-box">
   <div class="ps-head">时间胶囊<span>埋一句话，等它到期</span><button class="panel-x" data-close="capsule" aria-label="关闭时间胶囊">×</button></div>
   <div id="capBody"></div>
+</div>
+<div id="story" class="panel-box">
+  <div class="ps-head">篝火故事<span id="storyIdx"> 1 / 20</span><button class="panel-x" data-close="story" aria-label="关闭故事">×</button></div>
+  <div id="storyBody" class="v3-list"></div>
+  <div class="v3-row">
+    <button class="btn" id="storyNext">下一则</button>
+  </div>
 </div>
 <div id="toast"></div>
 <div id="help">
@@ -1658,6 +1673,55 @@ for(let i=0;i<10;i++){
 const state = { season:'autumn', theme:'none' };
 let curLightP = null;   // 当前生效的季节/主题光照参数(供亮度与天气叠加)
 
+/* ============================================================
+   10.4 二十四节气(在四季之上叠加一层文化时间轴)
+   说明:日期为近似值(±1 天),用于展示足够;不依赖任何外部数据源
+============================================================ */
+const SOLAR_TERMS = [
+  { nm:'小寒', md:[1,6],   s:'winter', po:'雁北乡，鹊始巢', fog:1.03 },
+  { nm:'大寒', md:[1,20],  s:'winter', po:'水泽腹坚，寒气之逆极', fog:1.05 },
+  { nm:'立春', md:[2,4],   s:'spring', po:'东风解冻，蛰虫始振', fog:0.99 },
+  { nm:'雨水', md:[2,19],  s:'spring', po:'獭祭鱼，鸿雁来', fog:1.02 },
+  { nm:'惊蛰', md:[3,6],   s:'spring', po:'桃始华，仓庚鸣', fog:1.00 },
+  { nm:'春分', md:[3,21],  s:'spring', po:'玄鸟至，雷乃发声', fog:0.98 },
+  { nm:'清明', md:[4,5],   s:'spring', po:'桐始华，虹始见', fog:1.04 },
+  { nm:'谷雨', md:[4,20],  s:'spring', po:'萍始生，戴胜降于桑', fog:1.02 },
+  { nm:'立夏', md:[5,6],   s:'summer', po:'蝼蝈鸣，蚯蚓出', fog:0.98 },
+  { nm:'小满', md:[5,21],  s:'summer', po:'苦菜秀，麦气至', fog:0.99 },
+  { nm:'芒种', md:[6,6],   s:'summer', po:'螳螂生，鵙始鸣', fog:1.00 },
+  { nm:'夏至', md:[6,21],  s:'summer', po:'鹿角解，蜩始鸣', fog:0.97 },
+  { nm:'小暑', md:[7,7],   s:'summer', po:'温风至，蟋蟀居壁', fog:1.01 },
+  { nm:'大暑', md:[7,23],  s:'summer', po:'腐草为萤，土润溽暑', fog:1.03 },
+  { nm:'立秋', md:[8,8],   s:'autumn', po:'凉风至，白露降', fog:0.99 },
+  { nm:'处暑', md:[8,23],  s:'autumn', po:'鹰乃祭鸟，天地始肃', fog:1.01 },
+  { nm:'白露', md:[9,8],   s:'autumn', po:'鸿雁来，玄鸟归', fog:1.04 },
+  { nm:'秋分', md:[9,23],  s:'autumn', po:'雷始收声，蛰虫坯户', fog:1.00 },
+  { nm:'寒露', md:[10,8],  s:'autumn', po:'鸿雁来宾，菊有黄华', fog:1.03 },
+  { nm:'霜降', md:[10,23], s:'autumn', po:'豺乃祭兽，草木黄落', fog:1.05 },
+  { nm:'立冬', md:[11,7],  s:'winter', po:'水始冰，地始冻', fog:1.02 },
+  { nm:'小雪', md:[11,22], s:'winter', po:'虹藏不见，闭塞成冬', fog:1.04 },
+  { nm:'大雪', md:[12,7],  s:'winter', po:'鹖鴠不鸣，荔挺出', fog:1.06 },
+  { nm:'冬至', md:[12,22], s:'winter', po:'蚯蚓结，麋角解', fog:1.03 },
+];
+function termOf(date){
+  const d = date || new Date();
+  const md = (d.getMonth() + 1) * 100 + d.getDate();
+  let hit = SOLAR_TERMS[SOLAR_TERMS.length - 1];
+  for(const t of SOLAR_TERMS){
+    if (md >= t.md[0]*100 + t.md[1]) hit = t;
+  }
+  return hit;
+}
+let curTerm = termOf();
+// 节气与季节不冲突:节气只微调雾密度(±6%),季节主色板不变
+function termFogMul(){ return curTerm && curTerm.fog ? curTerm.fog : 1; }
+// 季节的代表节气(用户手动切季节时用,保证"春分/夏至/秋分/冬至"不矛盾)
+const SEASON_TERM = { spring:'春分', summer:'夏至', autumn:'秋分', winter:'冬至' };
+function termLabel(){
+  if (curTerm && curTerm.s === state.season) return curTerm.nm;
+  return SEASON_TERM[state.season] || SEASONS[state.season].label;
+}
+
 const SEASONS = {
   spring: {
     label:'春',
@@ -2077,7 +2141,7 @@ function applyWeather(){
   weatherPoints.material = W.snow > 0 ? snowMatW : rainMat;
   if (curLightP){
     const p = curLightP;
-    scene.fog.density = p.fogD * W.fogMul;
+    scene.fog.density = p.fogD * W.fogMul * termFogMul();
     const fc = new THREE.Color(p.fogC).lerp(GRAY_SKY, W.gray);
     scene.fog.color.copy(fc);
     skyMat.uniforms.uFog.value.copy(fc).convertSRGBToLinear();
@@ -2302,11 +2366,12 @@ function updateStatus(){
   const el = document.getElementById('statusText');
   if (!el) return;
   const tName = THEME_NAMES[state.theme];
-  const parts = [SEASONS[state.season].label, WEATHERS[curWeather].label];
+  const parts = [termLabel(), WEATHERS[curWeather].label];
   if (tName && tName !== '无') parts.push(tName);
   parts.push(DWELLING_LABEL[curDwelling], brightLevel*10 + '%');
   el.textContent = parts.join(' · ');
 }
+// 节气名由 termLabel() 统一给出(定义在节气模块内,避免初始化顺序问题)
 function syncUrl(){
   try{
     const p = new URLSearchParams({ s:state.season, t:state.theme, w:curWeather, d:curDwelling, b:String(brightLevel) });
@@ -2327,6 +2392,7 @@ function readUrl(){
   const p = INIT_Q;
   const s = p.get('s'), t = p.get('t'), w = p.get('w'), d = p.get('d'), b = parseInt(p.get('b') || '', 10);
   if (s && SEASONS[s]) state.season = s;
+  else if (curTerm && curTerm.s) state.season = curTerm.s;   // 未指定则按真实节气
   if (t && THEME_KEYS.indexOf(t) >= 0) state.theme = t;
   if (w && WEATHERS[w]) curWeather = w;
   if (d && DWELLINGS[d]) curDwelling = d;
@@ -2756,7 +2822,12 @@ addEventListener('keydown', (e)=>{
   if (tag === 'INPUT' || tag === 'TEXTAREA') return;
   const k = e.key.toLowerCase();
   if (e.key === '?' || (k === '/' && e.shiftKey)){ e.preventDefault(); toggleHelp(); return; }
-  if (e.key === 'Escape'){ toggleHelp(false); if (immersive) setImmersive(false); return; }
+  if (e.key === 'Escape'){
+    toggleHelp(false);
+    if (immersive) setImmersive(false);
+    if (window.__v4 && window.__v4.isStarMode && window.__v4.isStarMode()) window.__v4.setStarMode(false);
+    return;
+  }
   if (k === 'i'){ setImmersive(!immersive); return; }
   if (k === 'w'){
     const i = WEATHER_KEYS.indexOf(curWeather);
@@ -3120,6 +3191,22 @@ function buildAudio(){
     rainG.gain.setTargetAtTime(W.rainA * .30, t0, .9);
     windG.gain.setTargetAtTime(W.windA * .09, t0, 1.4);
   };
+  // 风铃:五声音阶 + 金属泛音,快速衰减
+  A.windChime = ()=>{
+    const t0 = ctx.currentTime;
+    const scale = [1046.5, 1174.7, 1318.5, 1568.0, 1760.0];
+    const f = scale[(Math.random()*scale.length)|0];
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'sine'; o.frequency.value = f;
+    const o2 = ctx.createOscillator(); o2.type = 'sine'; o2.frequency.value = f * 2.76;
+    const g2 = ctx.createGain(); g2.gain.value = .22;
+    g.gain.setValueAtTime(.0001, t0);
+    g.gain.linearRampToValueAtTime(.045, t0 + .004);
+    g.gain.exponentialRampToValueAtTime(.0001, t0 + 1.0);
+    o.connect(g); o2.connect(g2); g2.connect(g); g.connect(ambBus);
+    o.start(t0); o.stop(t0 + 1.1);
+    o2.start(t0); o2.stop(t0 + 1.1);
+  };
 
   chordLoop(0); pluckLoop(); bellLoop(); cricketLoop();
   return A;
@@ -3130,6 +3217,7 @@ window.__audioThunder = (delay)=>{ setTimeout(()=>{ if (audio && audio.thunder) 
 window.__audioAmbience = (w,d,s)=>{ if (audio && audio.setAmbience) audio.setAmbience(w,d,s); };
 window.__audioSetVol = (id, v)=>{ if (audio && audio.setVolume) audio.setVolume(id, v); };
 window.__audioGain = (id)=>{ if (audio && audio.tracks && audio.tracks[id]) return audio.tracks[id].gain.value; return 0; };
+window.__audioWindChime = ()=>{ if (audio && audio.windChime) audio.windChime(); };
 // 专注结束提示音:C5-E5-G5 琶音(参考 hugesesame/pomodoro-timer, MIT)
 window.__audioChime = ()=>{
   if (!audio || !audio.ctx) return;
@@ -3536,6 +3624,332 @@ const V3 = (()=>{
 window.__v3 = V3;
 
 /* ============================================================
+   14.7 v4.0 氛围模块:风铃 / 观星 / 篝火故事 / 林间访客
+============================================================ */
+const V4 = (()=>{
+  const load = (k,d)=>{ try{const v=localStorage.getItem('cabin_'+k); return v?JSON.parse(v):d;}catch(_){return d;} };
+  const save = (k,v)=>{ try{localStorage.setItem('cabin_'+k, JSON.stringify(v));}catch(_){} };
+  function togglePanel(id, on){
+    const el = document.getElementById(id);
+    if (!el) return false;
+    const show = (on === undefined) ? !el.classList.contains('show') : on;
+    el.classList.toggle('show', show);
+    if (show) toggleMore(false);
+    return show;
+  }
+
+  /* —— 门廊风铃:随风摆动,Web Audio 合成金属泛音 —— */
+  let chimeMuted = false, chimeNext = 0;
+  const chimeTubes = [];
+  const chimeGroup = new THREE.Group();
+  {
+    const matBrass = new THREE.MeshStandardMaterial({ color:0xd8b26a, metalness:.85, roughness:.28 });
+    const rod = new THREE.Mesh(new THREE.CylinderGeometry(.022,.022,1.15,6), matWoodDk);
+    rod.rotation.z = Math.PI/2; chimeGroup.add(rod);
+    for(let i=0;i<5;i++){
+      const len = .20 + i*.055;
+      const tube = new THREE.Mesh(new THREE.CylinderGeometry(.023,.023,len,6), matBrass);
+      tube.position.set(-.42 + i*.21, -.06 - len/2, 0);
+      chimeGroup.add(tube);
+      chimeTubes.push({ m:tube, ph: rand(0,6.28) });
+    }
+    const str = new THREE.Mesh(new THREE.CylinderGeometry(.006,.006,.55,4), matWoodDk);
+    str.position.y = .5; chimeGroup.add(str);
+    chimeGroup.position.set(1.95, 2.92, CD/2 + 1.3);
+    cabin.add(chimeGroup);
+    const hit = hitSphere(0, -.15, 0, .55);
+    chimeGroup.add(hit);
+    makeInteractive(hit, '风铃', ()=>{
+      chimeMuted = !chimeMuted;
+      toast(chimeMuted ? '风铃已静音' : '风铃已开启');
+    });
+  }
+
+  /* —— 观星:望远镜 + 8 个星座 —— */
+  function textTex(txt){
+    const c = document.createElement('canvas'); c.width = 256; c.height = 64;
+    const g = c.getContext('2d');
+    g.fillStyle = '#cfe4ff';
+    g.font = '26px "Songti SC", SimSun, serif';
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(txt, 128, 32);
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  }
+  // 星点坐标为简化示意(方位/仰角偏移,单位度),非天文精确星表
+  const CONSTELLATIONS = [
+    { nm:'北斗七星', az:20,  alt:52, sc:9, stars:[[0,0],[-1.1,.55],[-2.2,.25],[-3.0,-.5],[-1.9,-1.3],[-1.1,-2.2],[-.1,-1.6]], lines:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6]] },
+    { nm:'猎户座',   az:165, alt:38, sc:7, stars:[[-.9,1.2],[.9,1.2],[0,0],[0,-.5],[0,-1],[.9,-2.2],[-.9,-2.2]], lines:[[0,2],[1,2],[2,3],[3,4],[4,5],[4,6]] },
+    { nm:'仙后座',   az:305, alt:58, sc:6, stars:[[-1.6,.3],[-.8,-.4],[0,.4],[.8,-.4],[1.6,.3]], lines:[[0,1],[1,2],[2,3],[3,4]] },
+    { nm:'天鹅座',   az:60,  alt:68, sc:7, stars:[[0,1.6],[0,.4],[0,-1.2],[-1.1,0],[1.0,.1]], lines:[[0,1],[1,2],[3,1],[1,4]] },
+    { nm:'天蝎座',   az:200, alt:28, sc:7, stars:[[-.4,1.4],[-.9,.6],[-1,-.3],[-.5,-1],[.3,-1.4],[1,-1.9],[1.4,-1.2]], lines:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6]] },
+    { nm:'天琴座',   az:100, alt:62, sc:5, stars:[[0,1.2],[-.6,.2],[.6,.1],[-.1,-.9]], lines:[[0,1],[0,2],[1,3],[2,3]] },
+    { nm:'仙女座',   az:330, alt:44, sc:6, stars:[[-1.2,-.5],[-.3,.2],[.6,.4],[1.4,-.2]], lines:[[0,1],[1,2],[2,3]] },
+    { nm:'双子座',   az:135, alt:58, sc:6, stars:[[-.7,1.3],[-.9,.2],[-.6,-1.0],[.7,1.0],[.9,-.1],[.6,-1.1]], lines:[[0,1],[1,2],[3,4],[4,5],[0,3]] },
+  ];
+  const starLayer = new THREE.Group(); starLayer.visible = false; scene.add(starLayer);
+  {
+    const matLine = new THREE.LineBasicMaterial({ color:0x9ec8ff, transparent:true, opacity:.62, fog:false });
+    const matStar = new THREE.PointsMaterial({ color:0xffffff, size:3.0, sizeAttenuation:true,
+      transparent:true, opacity:.95, fog:false });
+    const R = 185;
+    for(const c of CONSTELLATIONS){
+      const pts = c.stars.map(([u,v])=>{
+        const az = (c.az + u*c.sc) * Math.PI/180;
+        const alt = (c.alt + v*c.sc) * Math.PI/180;
+        return new THREE.Vector3(Math.cos(alt)*Math.cos(az)*R, Math.sin(alt)*R, Math.cos(alt)*Math.sin(az)*R);
+      });
+      starLayer.add(new THREE.Points(new THREE.BufferGeometry().setFromPoints(pts), matStar));
+      const lp = [];
+      for(const [a,b] of c.lines) lp.push(pts[a], pts[b]);
+      starLayer.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(lp), matLine));
+      const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map:textTex(c.nm),
+        transparent:true, depthWrite:false, fog:false }));
+      spr.position.copy(pts[0]).multiplyScalar(.96);
+      spr.scale.set(24, 6, 1);
+      starLayer.add(spr);
+    }
+  }
+  let starMode = false, starBackup = null;
+  {
+    const tg = new THREE.Group();
+    const matDark = new THREE.MeshStandardMaterial({ color:0x2a2c30, roughness:.5, metalness:.4 });
+    for(const a of [0, 2.094, 4.189]){
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(.028,.028,1.5,6), matDark);
+      leg.position.set(Math.cos(a)*.26, .72, Math.sin(a)*.26);
+      leg.rotation.z = Math.cos(a)*.12; leg.rotation.x = -Math.sin(a)*.12;
+      tg.add(leg);
+    }
+    const tube = new THREE.Mesh(new THREE.CylinderGeometry(.12,.15,.95,10), matDark);
+    tube.position.y = 1.62; tube.rotation.z = .5; tg.add(tube);
+    const lens = new THREE.Mesh(new THREE.CircleGeometry(.115, 12),
+      new THREE.MeshStandardMaterial({ color:0x8ec8ff, emissive:0x3a6a99, emissiveIntensity:.8 }));
+    lens.position.set(.23, 1.83, 0); lens.rotation.y = .5; tg.add(lens);
+    tg.position.set(-3.4, terrainH(-3.4, 6.4), 6.4);
+    scene.add(tg);
+    const hit = hitSphere(0, 1.4, 0, .7); tg.add(hit);
+    makeInteractive(hit, '望远镜', ()=> setStarMode(!starMode));
+  }
+  function setStarMode(on){
+    starMode = !!on;
+    starLayer.visible = starMode;
+    document.body.classList.toggle('star-mode', starMode);
+    if (starMode){
+      starBackup = { p: camera.position.clone(), t: controls.target.clone() };
+      controls.enabled = false;
+      controls.autoRotate = false;
+      camera.position.set(0, 5.4, 6);
+      camera.lookAt(0, 26, -8);
+      if (starsMat) starsMat.opacity = 1;
+      renderer.toneMappingExposure = exposureBase * 0.42;   // 压暗地面,让星空显出来
+      toggleMore(false);
+      toast('观星模式 · 按 Esc 退出');
+    } else {
+      controls.enabled = true;
+      renderer.toneMappingExposure = exposureBase;
+      if (starBackup){
+        camera.position.copy(starBackup.p);
+        controls.target.copy(starBackup.t);
+        controls.update();
+      }
+      if (starsMat) starsMat.opacity = (curLightP ? curLightP.stars : .5) * (((WEATHERS[curWeather]||{}).starMul) || 1);
+    }
+  }
+
+  /* —— 篝火故事会 —— */
+  const STORIES = [
+    ['从前有个守林人，每晚都在这个位置生一堆火。','他说火光能照到来世的路，也能照见走丢的人。','后来他走了，火却一直没灭。'],
+    ['山那边的旅人说，他见过会发光的蘑菇。','只在雨后第三天夜里开，天亮就化成水。','我找了三年，还没找到。'],
+    ['有人说这屋子的窗户会自己亮。','其实是蜡烛烧到最后一截，火苗斜着倒下去。','但那天晚上，屋里确实有第二个影子。'],
+    ['我在门廊上捡到过一片羽毛。','灰白色，有半个手掌长，不知道是什么鸟的。','第二天，屋脊上多了一只我不认识的鸟。'],
+    ['冬天的溪水结冰以后，能听见底下的声音。','像有人在小声说话，又像很远的地方在敲鼓。','老人说那是水在记路。'],
+    ['那把旧椅子一直放在平台上。','谁也没坐过，但每年秋天都会自己转向太阳。','我试过把它摆正，第二天又歪了。'],
+    ['小时候以为萤火虫是星星掉下来的碎片。','后来才知道，它们只是想在黑夜里找到彼此。','所以它们总是一起亮。'],
+    ['雨天的屋顶会唱歌。','有的声音急，有的声音慢，像在商量什么。','雨停以后，它们就都不说话了。'],
+    ['我在这条路上走过很多次。','有一次遇到大雾，走了很久又回到原地。','那天的雾里，好像有另一个人也在走。'],
+    ['篝火快灭的时候，火苗会变成蓝色。','老人说那是火在交代后事。','所以那天我添了柴，让它再烧一会儿。'],
+    ['树屋的绳梯每年春天都要重绑一次。','不是因为坏了，是因为树又长高了。','它一直在往上长，只是我们看不见。'],
+    ['有只白狐在林子边上出现过三次。','每次都站在同一块石头上，看一会儿就走。','第四次我带了吃的，它没来。'],
+    ['秋天的落叶堆里能翻到去年的东西。','一枚扣子，一张纸条，半截蜡烛。','纸条上写着：明年这个时候，我还来。'],
+    ['月亮最圆的那天，林子里特别安静。','连虫都不叫，像是约好了一起看月亮。','我也不敢出声。'],
+    ['这间屋子的木头是从山上砍的。','砍树那天，山里下了很久的雨。','所以每到下雨，屋子就有点潮。'],
+    ['有人问我为什么住在这里。','我说因为这里的星星比较近。','其实是因为，这里的夜比较长。'],
+    ['冬至那天要包饺子，一个人也要包。','包完下锅，看着热气往上走，就不觉得孤单了。','热气散了，天也就亮了。'],
+    ['我数过从门廊到林子边要走多少步。','晴天是三十七步，雪天是四十二步。','多出来的那五步，是留给回头看的。'],
+    ['这盏灯我点了很久。','有时候忘了添油，它就自己灭了。','但每次我回来，它又是亮的。'],
+    ['如果你也走到这里，就坐下歇一会儿。','火还旺，故事还有。','不用急着走。'],
+  ];
+  let storyIdx = 0;
+  const storyBodyEl = document.getElementById('storyBody');
+  const storyIdxEl = document.getElementById('storyIdx');
+  function renderStory(){
+    if (!storyBodyEl) return;
+    const s = STORIES[storyIdx % STORIES.length];
+    storyBodyEl.innerHTML = s.map(l=>`<li>${l}</li>`).join('');
+    if (storyIdxEl) storyIdxEl.textContent = ' ' + (storyIdx % STORIES.length + 1) + ' / ' + STORIES.length;
+  }
+  const btnStoryEl = document.getElementById('btnStory');
+  if (btnStoryEl) btnStoryEl.onclick = ()=>{ if (togglePanel('story')) renderStory(); };
+  const storyNextEl = document.getElementById('storyNext');
+  if (storyNextEl) storyNextEl.onclick = ()=>{ storyIdx++; renderStory(); };
+
+  /* —— 节气按钮:显示当前节气与诗句 —— */
+  const btnTermEl = document.getElementById('btnTerm');
+  if (btnTermEl){
+    btnTermEl.textContent = '节气 · ' + (curTerm ? curTerm.nm : '');
+    btnTermEl.onclick = ()=>{
+      if (!curTerm) return;
+      toast(`${curTerm.nm} · ${curTerm.po}`);
+    };
+  }
+
+  /* —— 林间访客 —— */
+  const VISITOR_NAME = { deer:'一只鹿', traveler:'提灯的旅人', fox:'一只白狐', owl:'一只猫头鹰' };
+  const visitorSeen = load('visitors', {});
+  let visitorCur = null, visitorNext = performance.now() + 35000;
+
+  function mkDeer(){
+    const g = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({ color:0x8a6a4a, roughness:.9 });
+    const body = new THREE.Mesh(new THREE.BoxGeometry(1.0,.55,.45), mat);
+    body.position.y = .85; g.add(body);
+    for(const [x,z] of [[-.35,.16],[.35,.16],[-.35,-.16],[.35,-.16]]){
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(.09,.7,.09), mat);
+      leg.position.set(x,.35,z); g.add(leg);
+    }
+    const neck = new THREE.Mesh(new THREE.BoxGeometry(.16,.5,.16), mat);
+    neck.position.set(.45,1.25,0); neck.rotation.z = -.3; g.add(neck);
+    const head = new THREE.Mesh(new THREE.BoxGeometry(.32,.2,.18), mat);
+    head.position.set(.62,1.48,0); g.add(head);
+    for(const s of [-1,1]){
+      const ant = new THREE.Mesh(new THREE.CylinderGeometry(.02,.02,.42,4), mat);
+      ant.position.set(.6,1.7,s*.07); ant.rotation.z = -.2; ant.rotation.x = s*.3; g.add(ant);
+    }
+    g.scale.setScalar(1.1);
+    return g;
+  }
+  function mkTraveler(){
+    const g = new THREE.Group();
+    const cloak = new THREE.Mesh(new THREE.ConeGeometry(.42,1.5,8),
+      new THREE.MeshStandardMaterial({ color:0x2e2a33, roughness:.95 }));
+    cloak.position.y = .75; g.add(cloak);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(.16,8,6),
+      new THREE.MeshStandardMaterial({ color:0x1a1820, roughness:.9 }));
+    head.position.y = 1.55; g.add(head);
+    const lamp = new THREE.Mesh(new THREE.SphereGeometry(.11,8,6),
+      new THREE.MeshStandardMaterial({ color:0xffd08a, emissive:0xffb066, emissiveIntensity:1.8 }));
+    lamp.position.set(.34,1.0,.1); g.add(lamp);
+    const pl = new THREE.PointLight(0xffb066,.9,5.5,2);
+    pl.position.copy(lamp.position); g.add(pl);
+    return g;
+  }
+  function mkFox(){
+    const g = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({ color:0xeae4da, roughness:.9 });
+    const body = new THREE.Mesh(new THREE.BoxGeometry(.6,.3,.28), mat);
+    body.position.y = .4; g.add(body);
+    for(const [x,z] of [[-.2,.1],[.2,.1],[-.2,-.1],[.2,-.1]]){
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(.06,.36,.06), mat);
+      leg.position.set(x,.18,z); g.add(leg);
+    }
+    const head = new THREE.Mesh(new THREE.BoxGeometry(.22,.18,.18), mat);
+    head.position.set(.36,.55,0); g.add(head);
+    for(const s of [-1,1]){
+      const ear = new THREE.Mesh(new THREE.ConeGeometry(.05,.16,4), mat);
+      ear.position.set(.38,.68,s*.06); g.add(ear);
+    }
+    const tail = new THREE.Mesh(new THREE.ConeGeometry(.13,.5,6), mat);
+    tail.position.set(-.42,.5,0); tail.rotation.z = 1.1; g.add(tail);
+    return g;
+  }
+  function mkOwl(){
+    const g = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({ color:0x6a5a48, roughness:.95 });
+    const body = new THREE.Mesh(new THREE.SphereGeometry(.26,10,8), mat);
+    body.scale.y = 1.25; body.position.y = .42; g.add(body);
+    for(const s of [-1,1]){
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(.055,6,5),
+        new THREE.MeshStandardMaterial({ color:0xffd06a, emissive:0xffb040, emissiveIntensity:1.2 }));
+      eye.position.set(.09,.56,s*.09); g.add(eye);
+      const wing = new THREE.Mesh(new THREE.PlaneGeometry(.2,.34),
+        new THREE.MeshStandardMaterial({ color:0x5a4c3c, side:THREE.DoubleSide, roughness:.95 }));
+      wing.position.set(0,.42,s*.25); wing.rotation.y = s*.3; g.add(wing);
+    }
+    return g;
+  }
+  function renderVisitorProg(){
+    const el = document.getElementById('eggProg');
+    if (!el) return;
+    const old = el.querySelector('[data-vis]');
+    if (old) old.remove();
+    const n = Object.keys(visitorSeen).length;
+    const li = document.createElement('li');
+    li.dataset.vis = '1';
+    li.textContent = `林间偶遇 ${n} / 4 · 林子里偶尔会有访客`;
+    el.appendChild(li);
+  }
+  function spawnVisitor(){
+    const kinds = ['deer','traveler','fox','owl'];
+    const k = kinds[(Math.random()*kinds.length)|0];
+    const a = Math.random()*Math.PI*2;
+    const r = 12 + Math.random()*6;
+    const x = Math.cos(a)*r, z = Math.sin(a)*r;
+    const g = (k==='deer') ? mkDeer() : (k==='traveler') ? mkTraveler() : (k==='fox') ? mkFox() : mkOwl();
+    g.position.set(x, terrainH(x,z), z);
+    g.rotation.y = Math.atan2(-x, -z);
+    scene.add(g);
+    const hit = hitSphere(0, .8, 0, 1.0);
+    g.add(hit);
+    makeInteractive(hit, VISITOR_NAME[k], ()=>{
+      visitorSeen[k] = Date.now(); save('visitors', visitorSeen);
+      toast('图鉴 +1 · ' + VISITOR_NAME[k]);
+      scene.remove(g); visitorCur = null;
+      renderVisitorProg();
+    });
+    visitorCur = { g, k, t:0, life: 22 };
+    toast(VISITOR_NAME[k] + ' 出现在林间');
+  }
+
+  /* —— 循环 —— */
+  function tick(dt, t){
+    // 风铃:风力驱动摆动与发声
+    const wind = ((WEATHERS[curWeather]||{}).windX) || 0;
+    const amp = .04 + wind * .03;
+    for(const c of chimeTubes){
+      c.m.rotation.z = Math.sin(t*2.1 + c.ph) * amp;
+      c.m.rotation.x = Math.cos(t*1.6 + c.ph) * amp * .6;
+    }
+    if (!chimeMuted && wind > .5 && t > chimeNext){
+      chimeNext = t + (1.5 + Math.random()*4) / Math.max(.6, wind);
+      if (window.__audioWindChime) window.__audioWindChime();
+    }
+    // 林间访客
+    const now = performance.now();
+    if (!visitorCur && now > visitorNext){
+      spawnVisitor();
+      visitorNext = now + 60000 + Math.random()*90000;
+    }
+    if (visitorCur){
+      visitorCur.t += dt;
+      visitorCur.g.rotation.y += Math.sin(visitorCur.t*.5) * .0025;
+      const d = camera.position.distanceTo(visitorCur.g.position);
+      if (d < 7 || visitorCur.t > visitorCur.life){
+        scene.remove(visitorCur.g);
+        visitorCur = null;
+      }
+    }
+  }
+
+  // 点遮罩关闭故事面板
+  const storyEl = document.getElementById('story');
+  if (storyEl) storyEl.addEventListener('click', (e)=>{ if (e.target === storyEl) storyEl.classList.remove('show'); });
+  renderVisitorProg();
+
+  return { tick, setStarMode, isStarMode: ()=>starMode, visitorSeen, spawnVisitor };
+})();
+window.__v4 = V4;
+
+/* ============================================================
    15. 动画循环
 ============================================================ */
 const clock = new THREE.Clock();
@@ -3610,6 +4024,12 @@ renderer.setAnimationLoop(()=>{
 
   // v3 模块循环(孔明灯 / 彩蛋 / 胶囊 / 雷雨计时)
   if (window.__v3 && window.__v3.tick) window.__v3.tick(dt, t);
+  // v4 模块循环(风铃 / 林间访客)
+  if (window.__v4 && window.__v4.tick) window.__v4.tick(dt, t);
+  // 观星模式下相机保持仰视
+  if (window.__v4 && window.__v4.isStarMode && window.__v4.isStarMode()){
+    camera.lookAt(0, 26, -8);
+  }
 
   // 炊烟
   for(const s of smokeSprites){
@@ -3699,8 +4119,13 @@ renderer.setAnimationLoop(()=>{
     }
   }
 
-  // 相机:开场推进 → 呼吸式环绕
-  if (introT < INTRO){
+  // 相机:观星接管 → 开场推进 → 呼吸式环绕
+  const _starMode = !!(window.__v4 && window.__v4.isStarMode && window.__v4.isStarMode());
+  if (_starMode){
+    camera.position.set(0, 5.4, 6);
+    camera.lookAt(0, 26, -8);
+    if (starsMat) starsMat.opacity = 1;
+  } else if (introT < INTRO){
     introT += dt;
     const k = sstep(0, 1, introT/INTRO);
     const e = k*k*(3-2*k);
@@ -3712,7 +4137,7 @@ renderer.setAnimationLoop(()=>{
     off.setLength(lerp(off.length(), targetR, .012));
     camera.position.copy(controls.target).add(off);
   }
-  controls.update();
+  if (!_starMode) controls.update();
   composer.render();
 
   if (firstFrame){
