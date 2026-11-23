@@ -86,7 +86,7 @@
   #more .btn { width: 100%; text-align: center; }
   body.idle #more { opacity: 0; }
   @media (max-width: 940px){
-    #more { top: auto; bottom: 13vh; left: 50%; right: auto; transform: translateX(-50%);
+    #more { top: auto; bottom: calc(1.2vh + 54px); left: 50%; right: auto; transform: translateX(-50%);
             max-width: min(330px, calc(100vw - 86px));
             grid-template-columns: repeat(3, minmax(84px, 1fr)); }
   }
@@ -94,6 +94,7 @@
   /* ---- 场景预设卡片面板 ---- */
   #presets { position: fixed; left: 50%; top: 50%; transform: translate(-50%,-46%); z-index: 12;
              width: min(760px, 92vw); max-height: 82vh; overflow: auto; padding: 20px 20px 18px;
+             box-sizing: border-box;
              border-radius: 18px; background: rgba(22,19,15,.96);
              border: 1px solid rgba(233,222,203,.16); box-shadow: 0 24px 70px rgba(0,0,0,.6);
              opacity: 0; pointer-events: none;
@@ -128,7 +129,7 @@
 
   /* ---- 音景混音面板 ---- */
   #amb { position: fixed; left: 50%; top: 50%; transform: translate(-50%,-46%); z-index: 12;
-         width: min(370px, 88vw); padding: 20px; border-radius: 18px;
+         width: min(370px, 88vw); padding: 20px; border-radius: 18px; box-sizing: border-box;
          background: rgba(22,19,15,.96); border: 1px solid rgba(233,222,203,.16);
          box-shadow: 0 24px 70px rgba(0,0,0,.6); opacity: 0; pointer-events: none;
          transition: opacity .28s ease, transform .28s ease; }
@@ -146,7 +147,7 @@
 
   /* ---- 照片模式面板 ---- */
   #photo { position: fixed; left: 50%; top: 50%; transform: translate(-50%,-46%); z-index: 12;
-           width: min(390px, 90vw); padding: 20px; border-radius: 18px;
+           width: min(390px, 90vw); padding: 20px; border-radius: 18px; box-sizing: border-box;
            background: rgba(22,19,15,.96); border: 1px solid rgba(233,222,203,.16);
            box-shadow: 0 24px 70px rgba(0,0,0,.6); opacity: 0; pointer-events: none;
            transition: opacity .28s ease, transform .28s ease; }
@@ -161,7 +162,7 @@
 
   /* ---- 专注番茄钟面板 ---- */
   #focus { position: fixed; left: 50%; top: 50%; transform: translate(-50%,-46%); z-index: 12;
-           width: min(330px, 88vw); padding: 22px 20px 18px; border-radius: 18px;
+           width: min(330px, 88vw); padding: 22px 20px 18px; border-radius: 18px; box-sizing: border-box;
            background: rgba(22,19,15,.96); border: 1px solid rgba(233,222,203,.16);
            box-shadow: 0 24px 70px rgba(0,0,0,.6); opacity: 0; pointer-events: none;
            transition: opacity .28s ease, transform .28s ease; }
@@ -177,6 +178,7 @@
   /* ---- 通用面板容器(v3 新面板复用) ---- */
   .panel-box { position: fixed; left: 50%; top: 50%; transform: translate(-50%,-46%); z-index: 12;
                width: min(430px, 92vw); max-height: 82vh; overflow: auto; padding: 20px;
+               box-sizing: border-box;
                border-radius: 18px; background: rgba(22,19,15,.96);
                border: 1px solid rgba(233,222,203,.16); box-shadow: 0 24px 70px rgba(0,0,0,.6);
                opacity: 0; pointer-events: none;
@@ -205,6 +207,85 @@
   /* ---- 观星模式:临时隐藏地面元素干扰 ---- */
   body.star-mode #caption { opacity: 0 !important; }
   body.star-mode #hud { opacity: 0 !important; }
+  /* 观星模式的明确退出入口(不能只靠 Esc:手机没有键盘) */
+  #starExit { position: fixed; left: 50%; bottom: 5.5vh; transform: translateX(-50%); z-index: 30;
+              display: none; align-items: center; gap: 8px; padding: 9px 20px;
+              border-radius: 999px; cursor: pointer; font-family: inherit; font-size: 12.5px;
+              letter-spacing: .1em; color: #dfe8f6; background: rgba(18,22,32,.78);
+              border: 1px solid rgba(180,205,240,.3); backdrop-filter: blur(6px);
+              transition: all .25s; }
+  #starExit:hover { color: #fff; border-color: rgba(200,222,255,.7);
+                    background: rgba(30,38,54,.9); }
+  #starExit::before { content: '✕'; font-size: 11px; opacity: .8; }
+  body.star-mode #starExit { display: flex; }
+
+  /* ---- 老牛对话面板 ---- */
+  .cow-log { max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;
+             padding-right: 4px; }
+  .cow-msg { max-width: 86%; padding: 8px 11px; border-radius: 12px; font-size: 12.5px;
+             line-height: 1.55; word-break: break-word; }
+  .cow-msg.me { align-self: flex-end; background: rgba(232,183,106,.16);
+                border: 1px solid rgba(232,183,106,.28); color: #f0e6d2; }
+  .cow-msg.cow { align-self: flex-start; background: rgba(255,255,255,.05);
+                 border: 1px solid rgba(233,222,203,.14); color: #d8cdb6; }
+  .cow-quick { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 8px; }
+  .cow-chip { padding: 5px 10px; border-radius: 999px; font-size: 11px; cursor: pointer;
+              color: #b0a48e; background: rgba(255,255,255,.03);
+              border: 1px solid rgba(233,222,203,.14); transition: all .2s; }
+  .cow-chip:hover { color: #f0e6d2; border-color: rgba(232,183,106,.5); }
+  .cow-input-row { display: flex; gap: 8px; }
+  .cow-input-row .v3-input { flex: 1; }
+
+  /* ---- 移动端:双端 UI 适配 ---- */
+  @supports (height: 100dvh){
+    #presets, #amb, #photo, #focus, .panel-box { max-height: min(82vh, 82dvh); }
+  }
+  @media (max-width: 560px){
+    /* 手指热区:直接给高特异性的定高,避免被基础 .btn 的 padding 挤压 */
+    #ui .btn, #more .btn, #presets .btn, .panel-box .btn {
+      height: 38px; min-height: 38px; padding: 0 9px; box-sizing: border-box;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 10.5px;
+    }
+    #more .btn, .panel-box .btn { width: 100%; }
+    #more { grid-template-columns: repeat(3, minmax(76px, 1fr)); gap: 6px; padding: 10px;
+            max-width: min(320px, calc(100vw - 78px));
+            bottom: calc(1.2vh + 100px); }   /* 小屏导航换两行,面板要抬高 */
+    #ui { gap: 6px; }
+    /* 面板:更贴边、内部滚动 */
+    #presets, #amb, #photo, #focus, .panel-box {
+      width: calc(100vw - 24px); max-height: 78dvh; padding: 16px; }
+    /* 老牛:输入行改竖排,避免软键盘挤压 */
+    .cow-input-row { flex-wrap: wrap; }
+    .cow-input-row .v3-input { flex: 1 1 100%; }
+    .cow-input-row .btn { width: 100%; }
+    .cow-log { max-height: 30vh; }
+    /* 观星退出:避开底部按钮组 */
+    #starExit { bottom: 17vh; padding: 10px 18px; }
+    .ps-head { font-size: 12px; letter-spacing: .18em; }
+    .ach-grid { grid-template-columns: repeat(3, 1fr); gap: 7px; }
+    .ach-item { padding: 9px 5px; }
+    .fc-time { font-size: 40px; }
+  }
+
+  /* ---- 老牛悬浮入口(与场景牛棚双通道) ---- */
+  #cowBtn { position: fixed; right: 2.6vh; bottom: 2.6vh; z-index: 9;
+            display: flex; align-items: center; gap: 6px; padding: 7px 13px 7px 10px;
+            border-radius: 999px; cursor: pointer; font-family: inherit;
+            background: rgba(18,16,12,.50); border: 1px solid rgba(233,222,203,.16);
+            color: #cbbc9f; font-size: 11px; letter-spacing: .06em;
+            backdrop-filter: blur(6px); transition: color .25s, border-color .25s, background .25s; }
+  #cowBtn span { font-size: 15px; line-height: 1; }
+  #cowBtn em { font-style: normal; }
+  #cowBtn:hover { color: #f0e6d2; border-color: rgba(232,183,106,.55);
+                  background: rgba(232,183,106,.12); }
+  body.idle #cowBtn { opacity: 0; }
+  body.immersive #cowBtn { opacity: 0 !important; pointer-events: none !important; }
+  @media (max-width: 940px){
+    /* 手机:图标挪到右上 GitHub 下方,避开底部居中的主按钮组(414 宽时曾压住"季节") */
+    #cowBtn { left: auto; right: 1.6vh; top: calc(1.8vh + 40px); bottom: auto; padding: 9px; }
+    #cowBtn em { display: none; }
+  }
 
   /* ---- 沉浸模式:隐藏全部界面 ---- */
   body.immersive #ui, body.immersive #more, body.immersive #status, body.immersive #bright,
@@ -369,6 +450,7 @@
   <button class="btn" id="btnCheckin">签到 · 0天</button>
   <button class="btn" id="btnStory">故事</button>
   <button class="btn" id="btnTerm">节气</button>
+  <button class="btn" id="btnSlow">慢镜</button>
 </div>
 <div id="status"><span class="dot"></span><span id="statusText">秋 · 晴 · 60%</span></div>
 <a id="gh" href="https://github.com/geracdkabeerq2-collab/forest-cabin" target="_blank" rel="noopener"
@@ -378,6 +460,8 @@
   <em id="ghStar"></em>
 </a>
 <div id="flash"></div>
+<button id="starExit">退出观星 · 回到地面</button>
+<button id="cowBtn" title="叫老牛过来"><span>🐮</span><em>老牛</em></button>
 <div id="presets">
   <div class="ps-head">场景预设<span>点击卡片直接切换</span><button class="panel-x" data-close="presets" aria-label="关闭场景预设">×</button></div>
   <div class="ps-grid" id="psGrid"></div>
@@ -423,6 +507,15 @@
   <div id="storyBody" class="v3-list"></div>
   <div class="v3-row">
     <button class="btn" id="storyNext">下一则</button>
+  </div>
+</div>
+<div id="cow" class="panel-box">
+  <div class="ps-head">老牛<span>场景助手 · 能帮你切场景</span><button class="panel-x" data-close="cow" aria-label="关闭助手">×</button></div>
+  <div id="cowLog" class="cow-log"></div>
+  <div class="cow-quick" id="cowQuick"></div>
+  <div class="cow-input-row">
+    <input class="v3-input" id="cowIn" placeholder="问点什么…（现在什么季节 / 下雪 / 讲个故事）" maxlength="40">
+    <button class="btn" id="cowSend">说</button>
   </div>
 </div>
 <div id="toast"></div>
@@ -574,11 +667,63 @@ scene.add(fill);
 const hemi = new THREE.HemisphereLight(0xbcc9dd, 0x5a4d3c, 0.72);
 scene.add(hemi);
 const amb = new THREE.AmbientLight(0xffe8c8, 0.16);
+// 相机补光:太阳多在建筑背面,正面会成死黑剪影;这盏随相机走,只提亮暗部不破坏夜色
+const camFill = new THREE.DirectionalLight(0xa9bedd, 0.34);
+camFill.castShadow = false;
+scene.add(camFill);
+scene.add(camFill.target);
 scene.add(amb);
 
 /* ============================================================
    3. 程序化纹理
 ============================================================ */
+/* ============================================================
+   3.1 高度雾:覆写全局 fog chunk,实现「距离雾 × 高度衰减」
+   three 无内置高度雾;森林题材"近地更浓"是氛围核心。
+   必须在所有材质创建之前执行;InstancedMesh(树/草)需走 instanceMatrix 分支
+============================================================ */
+THREE.ShaderChunk.fog_pars_vertex = `
+#ifdef USE_FOG
+  varying float vFogDepth;
+  varying float vFogWorldY;
+#endif`;
+
+THREE.ShaderChunk.fog_vertex = `
+#ifdef USE_FOG
+  vFogDepth = - mvPosition.z;
+  #ifdef USE_INSTANCING
+    vFogWorldY = ( modelMatrix * instanceMatrix * vec4( position, 1.0 ) ).y;
+  #else
+    vFogWorldY = ( modelMatrix * vec4( position, 1.0 ) ).y;
+  #endif
+#endif`;
+
+THREE.ShaderChunk.fog_pars_fragment = `
+#ifdef USE_FOG
+  uniform vec3 fogColor;
+  varying float vFogDepth;
+  varying float vFogWorldY;
+  #ifdef FOG_EXP2
+    uniform float fogDensity;
+  #else
+    uniform float fogNear;
+    uniform float fogFar;
+  #endif
+#endif`;
+
+THREE.ShaderChunk.fog_fragment = `
+#ifdef USE_FOG
+  #ifdef FOG_EXP2
+    float fogFactor = 1.0 - exp( - fogDensity * fogDensity * vFogDepth * vFogDepth );
+  #else
+    float fogFactor = smoothstep( fogNear, fogFar, vFogDepth );
+  #endif
+  // 地面 y=0 处最浓,向上按 3.2m 指数衰减,高空保留 30% 底雾(避免天空断层)
+  float hFall = exp( - max( vFogWorldY, 0.0 ) / 3.2 );
+  fogFactor *= mix( 0.30, 1.0, hFall );
+  gl_FragColor.rgb = mix( gl_FragColor.rgb, fogColor, fogFactor );
+#endif`;
+
 function makeTex(w, h, fn){
   const c = document.createElement('canvas'); c.width=w; c.height=h;
   const g = c.getContext('2d'); fn(g, w, h);
@@ -593,6 +738,30 @@ function speckle(g, w, h, n, colors, size=1.6, alpha=.16){
     g.globalAlpha = alpha * rand(.4, 1);
     g.fillRect(rand(w), rand(h), size*rand(.5,1.6), size*rand(.5,1.6)); }
   g.globalAlpha = 1;
+}
+
+/* 从已有颜色贴图派生灰度凹凸图(零额外绘制,缓存复用)
+   低模"贴纸感"的根因是没有凹凸,加 bumpMap 是零新增依赖的收益最高项 */
+const _bumpCache = new WeakMap();
+function bumpOf(tex){
+  if (!tex || !tex.image) return null;
+  if (_bumpCache.has(tex)) return _bumpCache.get(tex);
+  const w = tex.image.width, h = tex.image.height;
+  const b = document.createElement('canvas'); b.width = w; b.height = h;
+  const bg = b.getContext('2d');
+  bg.drawImage(tex.image, 0, 0);
+  const id = bg.getImageData(0, 0, w, h), d = id.data;
+  for(let i=0; i<d.length; i+=4){
+    const v = d[i]*.299 + d[i+1]*.587 + d[i+2]*.114;
+    d[i] = d[i+1] = d[i+2] = v;
+  }
+  bg.putImageData(id, 0, 0);
+  const bt = new THREE.CanvasTexture(b);
+  bt.wrapS = tex.wrapS; bt.wrapT = tex.wrapT;
+  bt.repeat.copy(tex.repeat);
+  bt.anisotropy = 8;
+  _bumpCache.set(tex, bt);
+  return bt;
 }
 
 const barkTex = makeTex(256, 256, (g,w,h)=>{
@@ -743,16 +912,31 @@ const smokeTex    = makeTex(128,128,(g,w,h)=>{
 ============================================================ */
 const uTime = { value: 0 };
 
-const matClad   = new THREE.MeshStandardMaterial({ map:claddingTex, color:0x9c7c57, roughness:.88 });
-const matRoofM  = new THREE.MeshStandardMaterial({ map:roofDarkTex, color:0x3f464e, roughness:.62, metalness:.3 });
-const matDeck   = new THREE.MeshStandardMaterial({ map:deckTex, color:0xb58a5d, roughness:.82 });
+const matClad   = new THREE.MeshStandardMaterial({ map:claddingTex, bumpMap:bumpOf(claddingTex), bumpScale:.038, color:0x9c7c57, roughness:.84 });
+const matRoofM  = new THREE.MeshStandardMaterial({ map:roofDarkTex, bumpMap:bumpOf(roofDarkTex), bumpScale:.055, color:0x3f464e, roughness:.66, metalness:.28 });
+const matDeck   = new THREE.MeshStandardMaterial({ map:deckTex, bumpMap:bumpOf(deckTex), bumpScale:.042, color:0xb58a5d, roughness:.80 });
 const matBlack  = new THREE.MeshStandardMaterial({ color:0x17181b, roughness:.45, metalness:.55 });
 const matBlackM = new THREE.MeshStandardMaterial({ color:0x141518, roughness:.5, metalness:.4 });
-const matConc   = new THREE.MeshStandardMaterial({ color:0x46423c, roughness:1 });
+/* 混凝土/毛石的噪点凹凸:纯色材质加一点粗糙感,避免大面积"塑料平面" */
+const concBumpTex = (()=>{
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const g = c.getContext('2d');
+  g.fillStyle = '#808080'; g.fillRect(0, 0, 128, 128);
+  for(let i=0;i<2600;i++){
+    const v = Math.random() < .5 ? 60 : 190;
+    g.fillStyle = `rgba(${v},${v},${v},${.18 + Math.random()*.18})`;
+    g.fillRect(Math.random()*128, Math.random()*128, 1 + Math.random()*2, 1 + Math.random()*2);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+})();
+const matConc   = new THREE.MeshStandardMaterial({ color:0x46423c, roughness:1,
+  bumpMap: concBumpTex, bumpScale:.03 });
 const matWoodWarm = new THREE.MeshStandardMaterial({ color:0xa87a4e, roughness:.78 });   // 门廊家具:暖木
 const matTerra    = new THREE.MeshStandardMaterial({ color:0x9c5a3c, roughness:.92 });   // 盆栽:陶土
-const matStone  = new THREE.MeshStandardMaterial({ map:stoneTex, color:0xb0aca2, roughness:1 });
-const matTrunk  = new THREE.MeshLambertMaterial({ color:0x6d4b33, map:barkTex });
+const matStone  = new THREE.MeshStandardMaterial({ map:stoneTex, bumpMap:bumpOf(stoneTex), bumpScale:.052, color:0xb0aca2, roughness:.92 });
+const matTrunk  = new THREE.MeshLambertMaterial({ color:0x6d4b33, map:barkTex, bumpMap:bumpOf(barkTex), bumpScale:.07 });
 const matSnow   = new THREE.MeshStandardMaterial({ color:0xf1f5fa, roughness:.95 });
 const matPane   = new THREE.MeshStandardMaterial({
   map:paneTex, color:0xbdb0a4, emissive:0xffb066, emissiveMap:paneTex, emissiveIntensity:.55, roughness:.35,
@@ -1199,6 +1383,72 @@ const planterFlowers = new THREE.Group();
 }
 
 /* ============================================================
+   6.5 建筑细节增强:竖向分格棂 / 侧檐厚度 / 墙脚压条 / 门套
+   (低模建筑"像积木"的三个根因:玻璃无分格、屋顶无厚度、墙体不入地)
+============================================================ */
+{
+  const fz = CD/2 + .02;
+  // 1) 落地窗竖向分格棂:大玻璃变成 6 格,近看有结构
+  for(const x of [-2.98,-2.06,-1.14,1.36,1.96,2.86]){
+    box(.045, 2.84, .05, matBlackM, x, 1.98, fz + .055);
+  }
+  // 2) 门套(左右立梃 + 上门楣),把"门洞"和"玻璃"分开
+  box(.09, 2.52, .16, matWoodWarm,  .93, 1.42, fz + .04);
+  box(.09, 2.52, .16, matWoodWarm, -.39, 1.42, fz + .04);
+  box(1.44, .10, .16, matWoodWarm,  .27, 2.72, fz + .04);
+  // 3) 侧檐:沿屋顶坡度的窄挑檐,给出屋面的"厚度"
+  {
+    const frontZ = 3.9, frontY = 4.42, backZ = -3.1, backY = 3.42;
+    const run = frontZ - backZ, rise = frontY - backY;
+    const ang = Math.atan2(rise, run), slopeLen = Math.hypot(run, rise) + .2;
+    for(const s of [-1,1]){
+      const e = new THREE.Mesh(new THREE.BoxGeometry(.12, .2, slopeLen), matBlack);
+      e.position.set(s * 4.02, (frontY + backY)/2 - .04, (frontZ + backZ)/2);
+      e.rotation.x = -ang; e.castShadow = true; cabin.add(e);
+    }
+  }
+  // 4) 墙脚压条:深色一圈,把建筑"压"在地上(替代 SSAO 的落地感)
+  box(CW + .34, .14, CD + .34, matBlackM, 0, .09, 0);
+}
+
+/* ============================================================
+   6.6 新建:柴房(左侧独立小木棚,含堆柴)
+============================================================ */
+{
+  const shed = new THREE.Group();
+  const SW = 3.0, SD = 2.6, SH = 2.2;
+  const wall = new THREE.Mesh(new THREE.BoxGeometry(SW, SH, SD), matClad);
+  wall.position.set(0, SH/2, 0);
+  wall.castShadow = wall.receiveShadow = true;
+  shed.add(wall);
+  // 单坡顶(后高前低),与主屋的坡向错开,避免"复制粘贴感"
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(SW + .55, .13, SD + .65), matRoofM);
+  roof.position.set(0, SH + .2, 0); roof.rotation.x = .2;
+  roof.castShadow = true; shed.add(roof);
+  // 屋面压边
+  const edge = new THREE.Mesh(new THREE.BoxGeometry(SW + .6, .1, .1), matBlack);
+  edge.position.set(0, SH + .12, SD/2 + .3); shed.add(edge);
+  // 木门 + 门把手(用亮木色,暗光下也能与墙体区分)
+  const door = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.7, .07), matDeck);
+  door.position.set(0, .85, SD/2 + .04); shed.add(door);
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(1.14, 1.82, .05), matWoodWarm);
+  frame.position.set(0, .88, SD/2 + .02); shed.add(frame);
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(.04, 6, 5), matBlack);
+  knob.position.set(.36, .9, SD/2 + .1); shed.add(knob);
+  // 堆柴:放在屋侧朝向空地的一边,从主视角能看到
+  for(let i=0;i<10;i++){
+    const log = new THREE.Mesh(new THREE.CylinderGeometry(.085,.085,1.05,6), matTrunk);
+    log.rotation.z = Math.PI/2;
+    log.position.set(-SW/2 - .38, .12 + Math.floor(i/5) * .19, -1.0 + (i % 5) * .27);
+    log.castShadow = true; shed.add(log);
+  }
+  const SX = -7.4, SZ = 3.0;
+  shed.position.set(SX, terrainH(SX, SZ), SZ);
+  shed.rotation.y = .38;
+  scene.add(shed);
+}
+
+/* ============================================================
    6.6 可选居所:帐篷 / 房车 / 树屋(与原有小屋互斥显示)
 ============================================================ */
 const DWELLING_KEYS  = ['cabin','tent','rv','treehouse'];
@@ -1405,9 +1655,9 @@ const smokeAnchor = new THREE.Vector3(1.9, 5.15, -1.0);
     p.rotation.x = -Math.PI/2; p.position.set(x,.05,z); p.renderOrder = 2; cabin.add(p);
   }
 }
-{ // —— 现代方形踏步石
+{ // —— 现代方形踏步石(用石材贴图:石阶该有石纹)
   for(let i=0;i<5;i++){
-    const s = box(1.5,.08,.75, matConc, (i%2? .35:-.35), .06, 5.0+i*1.35);
+    const s = box(1.5,.08,.75, matStone, (i%2? .35:-.35), .06, 5.0+i*1.35);
     s.rotation.y = rand(-.08,.08);
   }
 }
@@ -2019,7 +2269,7 @@ function setLighting(p){
   sunSprite.position.copy(sunDir).multiplyScalar(400);
   sunHalo.position.copy(sunSprite.position);
   fill.color.set(p.fillC); fill.intensity = p.fillI;
-  hemi.intensity = p.hemiI; amb.intensity = p.ambI;
+  hemi.intensity = p.hemiI * 1.18; amb.intensity = p.ambI * 1.22;
   renderer.toneMappingExposure = p.exp;
   sunSprite.material.color.set(p.spriteC);
   sunSprite.material.opacity = p.spriteO;
@@ -2060,6 +2310,7 @@ function applyLook(skipCaptions){
   document.getElementById('titleSub').textContent = 'FOREST CABIN · ' + (T.label!=='无'? T.label : S.label);
   if (!skipCaptions) restartCaptions(T.captions || S.captions);
   if (window.__audioSetTheme) window.__audioSetTheme(state.theme);
+  if (window.__audioSetSeason) window.__audioSetSeason(state.season);
   // 节日自带推荐天气(用户仍可手动改)
   if (T.weather && T.weather !== curWeather && typeof setWeather === 'function') setWeather(T.weather);
   if (typeof updateStatus === 'function') updateStatus();
@@ -2202,19 +2453,39 @@ const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight), .45
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
 const gradePass = new ShaderPass({
-  uniforms:{ tDiffuse:{value:null}, uTime:{value:0} },
+  uniforms:{ tDiffuse:{value:null}, uTime:{value:0},
+             uRes:{value:new THREE.Vector2(innerWidth, innerHeight)}, uSlow:{value:0} },
   vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
   fragmentShader:`
-    uniform sampler2D tDiffuse; uniform float uTime; varying vec2 vUv;
+    uniform sampler2D tDiffuse; uniform float uTime; uniform vec2 uRes; uniform float uSlow;
+    varying vec2 vUv;
     float rnd(vec2 p){ return fract(sin(dot(p, vec2(12.9898,78.233)))*43758.5453); }
     void main(){
       vec4 c = texture2D(tDiffuse, vUv);
+      // 0) 慢镜时的轻微色差(只取边缘通道,成本极低)
+      if (uSlow > 0.01){
+        float ca = uSlow * 0.0022;
+        c.r = texture2D(tDiffuse, vUv + vec2(ca, 0.0)).r;
+        c.b = texture2D(tDiffuse, vUv - vec2(ca, 0.0)).b;
+      }
       float l = dot(c.rgb, vec3(.299,.587,.114));
-      c.rgb = mix(vec3(l), c.rgb, 1.12);
-      c.rgb *= mix(vec3(.93,1.0,1.07), vec3(1.06,1.0,.92), smoothstep(.12,.85,l));
+      // 1) 饱和度(慢镜略降,更像电影)
+      c.rgb = mix(vec3(l), c.rgb, 1.10 - uSlow*0.20);
+      // 2) split tone:加法式,避免乘法把黑位压死
+      vec3 cw = mix(vec3(-.012,-.004,.014), vec3(.016,.006,-.012), smoothstep(.10,.80,l));
+      c.rgb += cw;
+      // 3) 慢镜冷调偏移
+      c.rgb += vec3(-.010,.004,.024) * uSlow;
+      // 4) toe lift + shoulder roll(黑不死、白不爆)
+      c.rgb = c.rgb*0.965 + 0.018;
+      c.rgb = mix(c.rgb, c.rgb / (1.0 + max(c.rgb - 0.86, 0.0) * 2.2), step(0.86, l));
+      // 5) 暗角:原来 -34% 过强,改 -20%(慢镜加深到 -34%)
       float d = distance(vUv, vec2(.5));
-      c.rgb *= 1.0 - .34*smoothstep(.45,.98,d);
-      c.rgb += (rnd(vUv*vec2(1613.,1931.)+fract(uTime)*7.)-.5)*.04;
+      c.rgb *= 1.0 - (0.20 + uSlow*0.14) * smoothstep(.58, 1.02, d);
+      // 6) 颗粒:12Hz 低频种子(原来每帧换种子会"沸腾"),并按像素缩放
+      float seed = floor(uTime * 12.0);
+      float n = rnd(vUv * uRes + seed) - .5;
+      c.rgb += n * 0.014 * (1.0 - 0.5*l) * (1.0 + uSlow*0.7);
       gl_FragColor = c;
     }`
 });
@@ -2945,8 +3216,31 @@ const CHORDS_SPOOKY = [
   { bass: 40, pad: [52, 55, 59, 64] },
   { bass: 43, pad: [50, 55, 58, 62] },
 ];
+/* 按季节的调性与和弦进行(更贴合场景情绪)
+   春 D 大调明亮 / 夏 G 大调开阔 / 秋 C 大调抒情 / 冬 A 小调清冷 */
+const SEASON_CHORDS = {
+  spring: [                                  // D - Bm - G - A
+    { bass: 38, pad: [50, 54, 57, 62] },
+    { bass: 35, pad: [47, 50, 54, 59] },
+    { bass: 43, pad: [50, 55, 59, 62] },
+    { bass: 45, pad: [52, 57, 61, 64] },
+  ],
+  summer: [                                  // G - Em - C - D
+    { bass: 43, pad: [50, 55, 59, 62] },
+    { bass: 40, pad: [47, 52, 55, 59] },
+    { bass: 36, pad: [48, 52, 55, 60] },
+    { bass: 38, pad: [50, 54, 57, 62] },
+  ],
+  autumn: CHORDS_WARM,                        // F - C/E - Am - G（原治愈进行）
+  winter: [                                  // Am - F - C - G
+    { bass: 45, pad: [48, 52, 57, 60] },
+    { bass: 41, pad: [48, 53, 57, 60] },
+    { bass: 36, pad: [48, 52, 55, 60] },
+    { bass: 43, pad: [50, 55, 59, 62] },
+  ],
+};
 const MUSIC_MODES = {
-  none:       { chords: CHORDS_WARM,   pluck:[1500,4100], bell:[16000,36000] },
+  none:       { chords: null,          pluck:[1500,4100], bell:[16000,36000] },  // null = 跟随季节
   halloween:  { chords: CHORDS_SPOOKY, pluck:[2200,5200], bell:[20000,40000] },
   christmas:  { chords: CHORDS_WARM,   pluck:[600,1500],  bell:[3500,9000]  },
 };
@@ -3044,15 +3338,39 @@ function buildAudio(){
     o.start(t); o.stop(t + n*.09 + .1);
   }
 
-  const A = { ctx, master, melodyPool: [], mode: MUSIC_MODES.none };
+  const A = { ctx, master, melodyPool: [], mode: MUSIC_MODES.none, seasonChords: CHORDS_WARM };
   A.setTheme = (name)=>{ A.mode = MUSIC_MODES[name] || MUSIC_MODES.none; };
+  A.setSeason = (s)=>{ A.seasonChords = SEASON_CHORDS[s] || CHORDS_WARM; };
   function chordLoop(i){
     const t = ctx.currentTime + .06;
-    const c = A.mode.chords[i % A.mode.chords.length];
+    const chords = A.mode.chords || A.seasonChords || CHORDS_WARM;
+    const c = chords[i % chords.length];
     bassNote(midiHz(c.bass), t, 9.4);
     c.pad.forEach(m => padNote(midiHz(m), t, 9.4, .024));
     A.melodyPool = c.pad.map(m=>m+12).concat(c.pad.slice(1).map(m=>m+24));
     A.chordTimer = setTimeout(()=>chordLoop(i+1), 8000);
+  }
+  /* 鸟鸣:晴天白天的环境点缀(短促上滑啁啾),音量很轻,不抢主旋律 */
+  A.birdChance = .35;
+  function birdLoop(){
+    if (Math.random() < A.birdChance){
+      const t0 = ctx.currentTime + .05;
+      const n = 2 + (Math.random()*3|0);
+      for(let i=0;i<n;i++){
+        const st = t0 + i*0.085 + Math.random()*0.04;
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = 'sine';
+        const f0 = 2200 + Math.random()*1400;
+        o.frequency.setValueAtTime(f0, st);
+        o.frequency.exponentialRampToValueAtTime(f0*(1.15+Math.random()*.45), st+0.045);
+        g.gain.setValueAtTime(.0001, st);
+        g.gain.linearRampToValueAtTime(.032, st+.008);
+        g.gain.exponentialRampToValueAtTime(.0001, st+.075);
+        o.connect(g); g.connect(bus);
+        o.start(st); o.stop(st+.1);
+      }
+    }
+    A.birdTimer = setTimeout(birdLoop, 7000 + Math.random()*16000);
   }
   function pluckLoop(){
     if (A.melodyPool.length && Math.random() < .8){
@@ -3208,13 +3526,19 @@ function buildAudio(){
     o2.start(t0); o2.stop(t0 + 1.1);
   };
 
-  chordLoop(0); pluckLoop(); bellLoop(); cricketLoop();
+  chordLoop(0); pluckLoop(); bellLoop(); cricketLoop(); birdLoop();
   return A;
 }
 window.__audioSetTheme = (name)=>{ if (audio) audio.setTheme(name); };
+window.__audioSetSeason = (s)=>{ if (audio && audio.setSeason) audio.setSeason(s); };
 window.__audioWeather = (w)=>{ if (audio && audio.setWeather) audio.setWeather(w); };
 window.__audioThunder = (delay)=>{ setTimeout(()=>{ if (audio && audio.thunder) audio.thunder(); }, delay || 0); };
-window.__audioAmbience = (w,d,s)=>{ if (audio && audio.setAmbience) audio.setAmbience(w,d,s); };
+window.__audioAmbience = (w,d,s)=>{
+  if (!audio) return;
+  if (audio.setAmbience) audio.setAmbience(w,d,s);
+  // 鸟鸣只在晴/雾天出现,雨雪雷静默
+  audio.birdChance = (w === 'clear') ? .40 : (w === 'mist' ? .15 : 0);
+};
 window.__audioSetVol = (id, v)=>{ if (audio && audio.setVolume) audio.setVolume(id, v); };
 window.__audioGain = (id)=>{ if (audio && audio.tracks && audio.tracks[id]) return audio.tracks[id].gain.value; return 0; };
 window.__audioWindChime = ()=>{ if (audio && audio.windChime) audio.windChime(); };
@@ -3624,6 +3948,30 @@ const V3 = (()=>{
 window.__v3 = V3;
 
 /* ============================================================
+   14.6 随机故事生成器(词库组合,组合数 > 3 万,保证语法通顺)
+============================================================ */
+const STORY_PARTS = {
+  time:  ['清晨','午后','黄昏','入夜','半夜','黎明前','雨停后'],
+  place: ['林子边','屋脊上','台阶前','溪水旁','门廊下','窗台边','那棵老树下'],
+  event: ['起雾了','落雪了','雨停了','虫声一点点起来','风把灯吹得直晃',
+          '月亮从树梢后慢慢出来','有只鸟落在栏杆上','雪从檐角滑下来'],
+  act:   ['我坐了很久','我数了会儿星星','我什么也没做，就听着','我把火添旺了些',
+          '我沿着台阶走了两圈','我对着窗玻璃哈了口气','我翻出一件旧外套'],
+  turn:  ['后来才明白','直到风停了','也许很久以后','等火快灭的时候','第二天早上'],
+  end:   ['有些事不必问清楚','安静本身就是答案','来得早不如来得巧',
+          '留下的人才听得见','屋子记得所有来过的人','火种比火更长久'],
+};
+function genStory(){
+  const p = k => STORY_PARTS[k][(Math.random()*STORY_PARTS[k].length)|0];
+  return [
+    `${p('time')}的${p('place')}，${p('event')}。`,
+    `${p('act')}。`,
+    `${p('turn')}，${p('end')}。`,
+  ];
+}
+// 组合数 = 7×7×8×7×5×6 ≈ 82320
+
+/* ============================================================
    14.7 v4.0 氛围模块:风铃 / 观星 / 篝火故事 / 林间访客
 ============================================================ */
 const V4 = (()=>{
@@ -3678,14 +4026,14 @@ const V4 = (()=>{
   }
   // 星点坐标为简化示意(方位/仰角偏移,单位度),非天文精确星表
   const CONSTELLATIONS = [
-    { nm:'北斗七星', az:20,  alt:52, sc:9, stars:[[0,0],[-1.1,.55],[-2.2,.25],[-3.0,-.5],[-1.9,-1.3],[-1.1,-2.2],[-.1,-1.6]], lines:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6]] },
-    { nm:'猎户座',   az:165, alt:38, sc:7, stars:[[-.9,1.2],[.9,1.2],[0,0],[0,-.5],[0,-1],[.9,-2.2],[-.9,-2.2]], lines:[[0,2],[1,2],[2,3],[3,4],[4,5],[4,6]] },
-    { nm:'仙后座',   az:305, alt:58, sc:6, stars:[[-1.6,.3],[-.8,-.4],[0,.4],[.8,-.4],[1.6,.3]], lines:[[0,1],[1,2],[2,3],[3,4]] },
-    { nm:'天鹅座',   az:60,  alt:68, sc:7, stars:[[0,1.6],[0,.4],[0,-1.2],[-1.1,0],[1.0,.1]], lines:[[0,1],[1,2],[3,1],[1,4]] },
-    { nm:'天蝎座',   az:200, alt:28, sc:7, stars:[[-.4,1.4],[-.9,.6],[-1,-.3],[-.5,-1],[.3,-1.4],[1,-1.9],[1.4,-1.2]], lines:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6]] },
-    { nm:'天琴座',   az:100, alt:62, sc:5, stars:[[0,1.2],[-.6,.2],[.6,.1],[-.1,-.9]], lines:[[0,1],[0,2],[1,3],[2,3]] },
-    { nm:'仙女座',   az:330, alt:44, sc:6, stars:[[-1.2,-.5],[-.3,.2],[.6,.4],[1.4,-.2]], lines:[[0,1],[1,2],[2,3]] },
-    { nm:'双子座',   az:135, alt:58, sc:6, stars:[[-.7,1.3],[-.9,.2],[-.6,-1.0],[.7,1.0],[.9,-.1],[.6,-1.1]], lines:[[0,1],[1,2],[3,4],[4,5],[0,3]] },
+    { nm:'北斗七星', az:20,  alt:58, sc:6,   stars:[[0,0],[-1.1,.55],[-2.2,.25],[-3.0,-.5],[-1.9,-1.3],[-1.1,-2.2],[-.1,-1.6]], lines:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6]] },
+    { nm:'猎户座',   az:42,  alt:40, sc:5,   stars:[[-.9,1.2],[.9,1.2],[0,0],[0,-.5],[0,-1],[.9,-2.2],[-.9,-2.2]], lines:[[0,2],[1,2],[2,3],[3,4],[4,5],[4,6]] },
+    { nm:'仙后座',   az:66,  alt:56, sc:4.5, stars:[[-1.6,.3],[-.8,-.4],[0,.4],[.8,-.4],[1.6,.3]], lines:[[0,1],[1,2],[2,3],[3,4]] },
+    { nm:'天鹅座',   az:34,  alt:72, sc:5,   stars:[[0,1.6],[0,.4],[0,-1.2],[-1.1,0],[1.0,.1]], lines:[[0,1],[1,2],[3,1],[1,4]] },
+    { nm:'天蝎座',   az:52,  alt:36, sc:5,   stars:[[-.4,1.4],[-.9,.6],[-1,-.3],[-.5,-1],[.3,-1.4],[1,-1.9],[1.4,-1.2]], lines:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6]] },
+    { nm:'天琴座',   az:26,  alt:46, sc:4,   stars:[[0,1.2],[-.6,.2],[.6,.1],[-.1,-.9]], lines:[[0,1],[0,2],[1,3],[2,3]] },
+    { nm:'仙女座',   az:72,  alt:44, sc:4.5, stars:[[-1.2,-.5],[-.3,.2],[.6,.4],[1.4,-.2]], lines:[[0,1],[1,2],[2,3]] },
+    { nm:'双子座',   az:46,  alt:62, sc:4.5, stars:[[-.7,1.3],[-.9,.2],[-.6,-1.0],[.7,1.0],[.9,-.1],[.6,-1.1]], lines:[[0,1],[1,2],[3,4],[4,5],[0,3]] },
   ];
   const starLayer = new THREE.Group(); starLayer.visible = false; scene.add(starLayer);
   {
@@ -3711,6 +4059,45 @@ const V4 = (()=>{
     }
   }
   let starMode = false, starBackup = null;
+  // 星座天区中心:方位 44°、仰角 55°,观星时相机正对它并放宽视角
+  const STAR_AZ = 44, STAR_ALT = 55, STAR_R = 140;
+  function starLookTarget(){
+    const a = STAR_AZ*Math.PI/180, e = STAR_ALT*Math.PI/180;
+    return new THREE.Vector3(
+      Math.cos(e)*Math.cos(a)*STAR_R,
+      Math.sin(e)*STAR_R,
+      Math.cos(e)*Math.sin(a)*STAR_R
+    );
+  }
+  function setStarMode(on){
+    starMode = !!on;
+    starLayer.visible = starMode;
+    document.body.classList.toggle('star-mode', starMode);
+    if (starMode){
+      starBackup = { p: camera.position.clone(), t: controls.target.clone(), fov: camera.fov };
+      controls.enabled = false;
+      controls.autoRotate = false;
+      camera.position.set(0, 5.4, 6);
+      camera.fov = 62;                       // 放宽视角,一屏能看到多组星座
+      camera.updateProjectionMatrix();
+      camera.lookAt(starLookTarget());
+      if (starsMat) starsMat.opacity = 1;
+      renderer.toneMappingExposure = exposureBase * 0.42;
+      toggleMore(false);
+      toast('观星模式 · 点下方按钮或按 Esc 退出');
+    } else {
+      controls.enabled = true;
+      renderer.toneMappingExposure = exposureBase;
+      camera.fov = (starBackup && starBackup.fov) ? starBackup.fov : 42;
+      camera.updateProjectionMatrix();
+      if (starBackup){
+        camera.position.copy(starBackup.p);
+        controls.target.copy(starBackup.t);
+        controls.update();
+      }
+      if (starsMat) starsMat.opacity = (curLightP ? curLightP.stars : .5) * (((WEATHERS[curWeather]||{}).starMul) || 1);
+    }
+  }
   {
     const tg = new THREE.Group();
     const matDark = new THREE.MeshStandardMaterial({ color:0x2a2c30, roughness:.5, metalness:.4 });
@@ -3729,31 +4116,6 @@ const V4 = (()=>{
     scene.add(tg);
     const hit = hitSphere(0, 1.4, 0, .7); tg.add(hit);
     makeInteractive(hit, '望远镜', ()=> setStarMode(!starMode));
-  }
-  function setStarMode(on){
-    starMode = !!on;
-    starLayer.visible = starMode;
-    document.body.classList.toggle('star-mode', starMode);
-    if (starMode){
-      starBackup = { p: camera.position.clone(), t: controls.target.clone() };
-      controls.enabled = false;
-      controls.autoRotate = false;
-      camera.position.set(0, 5.4, 6);
-      camera.lookAt(0, 26, -8);
-      if (starsMat) starsMat.opacity = 1;
-      renderer.toneMappingExposure = exposureBase * 0.42;   // 压暗地面,让星空显出来
-      toggleMore(false);
-      toast('观星模式 · 按 Esc 退出');
-    } else {
-      controls.enabled = true;
-      renderer.toneMappingExposure = exposureBase;
-      if (starBackup){
-        camera.position.copy(starBackup.p);
-        controls.target.copy(starBackup.t);
-        controls.update();
-      }
-      if (starsMat) starsMat.opacity = (curLightP ? curLightP.stars : .5) * (((WEATHERS[curWeather]||{}).starMul) || 1);
-    }
   }
 
   /* —— 篝火故事会 —— */
@@ -3784,9 +4146,12 @@ const V4 = (()=>{
   const storyIdxEl = document.getElementById('storyIdx');
   function renderStory(){
     if (!storyBodyEl) return;
-    const s = STORIES[storyIdx % STORIES.length];
+    // 65% 概率用生成式(每次都不同),35% 用手写精品,兼顾新鲜感与质感
+    const useGen = Math.random() < .65;
+    const s = useGen ? genStory() : STORIES[storyIdx % STORIES.length];
+    if (!useGen) storyIdx++;
     storyBodyEl.innerHTML = s.map(l=>`<li>${l}</li>`).join('');
-    if (storyIdxEl) storyIdxEl.textContent = ' ' + (storyIdx % STORIES.length + 1) + ' / ' + STORIES.length;
+    if (storyIdxEl) storyIdxEl.textContent = useGen ? ' 随手生成' : ` ${(storyIdx % STORIES.length) + 1} / ${STORIES.length}`;
   }
   const btnStoryEl = document.getElementById('btnStory');
   if (btnStoryEl) btnStoryEl.onclick = ()=>{ if (togglePanel('story')) renderStory(); };
@@ -3892,7 +4257,7 @@ const V4 = (()=>{
     const kinds = ['deer','traveler','fox','owl'];
     const k = kinds[(Math.random()*kinds.length)|0];
     const a = Math.random()*Math.PI*2;
-    const r = 12 + Math.random()*6;
+    const r = 19 + Math.random()*6;              // 从林子深处出发
     const x = Math.cos(a)*r, z = Math.sin(a)*r;
     const g = (k==='deer') ? mkDeer() : (k==='traveler') ? mkTraveler() : (k==='fox') ? mkFox() : mkOwl();
     g.position.set(x, terrainH(x,z), z);
@@ -3906,8 +4271,9 @@ const V4 = (()=>{
       scene.remove(g); visitorCur = null;
       renderVisitorProg();
     });
-    visitorCur = { g, k, t:0, life: 22 };
-    toast(VISITOR_NAME[k] + ' 出现在林间');
+    // walk=true:从远处朝小屋方向走过来,而不是凭空站定
+    visitorCur = { g, k, t:0, life: 26, walk: 1.0 + Math.random()*0.5 };
+    toast(VISITOR_NAME[k] + ' 从林子里走出来');
   }
 
   /* —— 循环 —— */
@@ -3931,10 +4297,21 @@ const V4 = (()=>{
     }
     if (visitorCur){
       visitorCur.t += dt;
-      visitorCur.g.rotation.y += Math.sin(visitorCur.t*.5) * .0025;
-      const d = camera.position.distanceTo(visitorCur.g.position);
+      const g = visitorCur.g;
+      // 朝小屋方向走近(而不是站定),走到 7m 内就会离开
+      if (visitorCur.walk){
+        const dx = -g.position.x, dz = -g.position.z;
+        const len = Math.hypot(dx, dz) || 1;
+        g.position.x += (dx/len) * visitorCur.walk * dt;
+        g.position.z += (dz/len) * visitorCur.walk * dt;
+        g.position.y = terrainH(g.position.x, g.position.z);
+        g.rotation.y = Math.atan2(dx, dz);
+        // 走路时轻微上下起伏,比静止更像"活的"
+        g.position.y += Math.abs(Math.sin(visitorCur.t * 6)) * .035;
+      }
+      const d = camera.position.distanceTo(g.position);
       if (d < 7 || visitorCur.t > visitorCur.life){
-        scene.remove(visitorCur.g);
+        scene.remove(g);
         visitorCur = null;
       }
     }
@@ -3945,9 +4322,200 @@ const V4 = (()=>{
   if (storyEl) storyEl.addEventListener('click', (e)=>{ if (e.target === storyEl) storyEl.classList.remove('show'); });
   renderVisitorProg();
 
-  return { tick, setStarMode, isStarMode: ()=>starMode, visitorSeen, spawnVisitor };
+  const starExitEl = document.getElementById('starExit');
+  if (starExitEl) starExitEl.onclick = ()=> setStarMode(false);
+  return { tick, setStarMode, isStarMode: ()=>starMode, visitorSeen, spawnVisitor,
+           aimStar: (cam)=> cam.lookAt(starLookTarget()) };
 })();
 window.__v4 = V4;
+
+/* ============================================================
+   14.8 AI 助手「老牛」:场景内可点击角色 + 本地规则引擎
+   定位:不是聊天机器人,而是「能直接替你操作场景的门房」
+============================================================ */
+const COW = (()=>{
+  /* —— 3D:低多边形小牛(坐姿) + 专属牛棚 —— */
+  const COW_X = -10.4, COW_Z = 4.6;
+  const COW_Y = terrainH(COW_X, COW_Z);
+  // 牛棚:三面墙 + 单坡顶 + 干草垛,让老牛有自己的地方
+  {
+    const pen = new THREE.Group();
+    const PW = 2.6, PD = 2.2, PH = 1.9;
+    const wallMat = matDeck;
+    // 后墙 + 两侧
+    const back = new THREE.Mesh(new THREE.BoxGeometry(PW, PH, .12), wallMat);
+    back.position.set(0, PH/2, -PD/2); back.castShadow = back.receiveShadow = true; pen.add(back);
+    for(const s of [-1,1]){
+      const side = new THREE.Mesh(new THREE.BoxGeometry(.12, PH, PD), wallMat);
+      side.position.set(s*PW/2, PH/2, 0); side.castShadow = side.receiveShadow = true; pen.add(side);
+    }
+    // 角柱
+    for(const [x,z] of [[-PW/2,-PD/2],[PW/2,-PD/2],[-PW/2,PD/2],[PW/2,PD/2]]){
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,PH,6), matWoodDk);
+      post.position.set(x, PH/2, z); pen.add(post);
+    }
+    // 单坡顶(前低后高)
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(PW + .5, .1, PD + .5), matRoofM);
+    roof.position.set(0, PH + .12, 0); roof.rotation.x = -.14;
+    roof.castShadow = true; pen.add(roof);
+    // 干草垛:放在棚外右侧,从主视角能看到
+    const hayMat = new THREE.MeshStandardMaterial({ color:0xc9a24e, roughness:.95 });
+    for(let i=0;i<3;i++){
+      const hay = new THREE.Mesh(new THREE.CylinderGeometry(.24,.24,.46,8), hayMat);
+      hay.rotation.z = Math.PI/2;
+      hay.position.set(PW/2 + .42, .24 + i*.02, PD/2 - .35 + i*.02);
+      hay.castShadow = true; pen.add(hay);
+    }
+    // 小木牌:立在左前柱外侧
+    const sign = new THREE.Mesh(new THREE.BoxGeometry(.46,.26,.05), matWoodWarm);
+    sign.position.set(-PW/2 - .12, 1.05, PD/2 + .04);
+    sign.rotation.y = .35; pen.add(sign);
+    pen.position.set(COW_X, COW_Y, COW_Z);
+    pen.rotation.y = 1.15;
+    scene.add(pen);
+    // 牛棚也作为可点击入口
+    const penHit = hitSphere(0, .9, 0, 1.4);
+    pen.add(penHit);
+    makeInteractive(penHit, '牛棚', ()=> toggleCow());
+  }
+
+  const g = new THREE.Group();
+  {
+    const white = new THREE.MeshStandardMaterial({ color:0xf0e9dc, roughness:.88 });
+    const dark  = new THREE.MeshStandardMaterial({ color:0x2c2823, roughness:.86 });
+    const pink  = new THREE.MeshStandardMaterial({ color:0xd09080, roughness:.9 });
+    const hornM = new THREE.MeshStandardMaterial({ color:0xcbb894, roughness:.7 });
+
+    const body = new THREE.Mesh(new THREE.SphereGeometry(.58, 12, 10), white);
+    body.scale.set(1.22, .92, 1.0); body.position.y = .62; body.castShadow = true; g.add(body);
+
+    for(const [x,y,z,r] of [[-.3,.78,.32,.2],[.25,.55,-.35,.17],[.1,.92,.1,.13]]){
+      const sp = new THREE.Mesh(new THREE.SphereGeometry(r, 8, 6), dark);
+      sp.position.set(x,y,z); sp.scale.z = .5; g.add(sp);
+    }
+
+    const head = new THREE.Mesh(new THREE.BoxGeometry(.5,.44,.42), white);
+    head.position.set(.66,.92,0); head.castShadow = true; g.add(head);
+
+    const muzzle = new THREE.Mesh(new THREE.BoxGeometry(.16,.2,.3), pink);
+    muzzle.position.set(.9,.84,0); g.add(muzzle);
+
+    for(const s of [-1,1]){
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(.045,6,5), dark);
+      eye.position.set(.86,1.02,s*.13); g.add(eye);
+      const ear = new THREE.Mesh(new THREE.BoxGeometry(.09,.05,.16), white);
+      ear.position.set(.6,1.14,s*.2); ear.rotation.z = s*.4; g.add(ear);
+      const horn = new THREE.Mesh(new THREE.ConeGeometry(.035,.13,5), hornM);
+      horn.position.set(.62,1.2,s*.12); g.add(horn);
+    }
+    for(const [x,z] of [[-.3,.22],[.34,.22],[-.3,-.22],[.34,-.22]]){
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(.13,.3,.13), white);
+      leg.position.set(x,.15,z); g.add(leg);
+    }
+    const tail = new THREE.Mesh(new THREE.CylinderGeometry(.02,.03,.4,5), white);
+    tail.position.set(-.72,.72,0); tail.rotation.z = .5; g.add(tail);
+    const tuft = new THREE.Mesh(new THREE.SphereGeometry(.06,6,5), dark);
+    tuft.position.set(-.86,.52,0); g.add(tuft);
+  }
+  g.position.set(COW_X, COW_Y, COW_Z + .15);
+  g.rotation.y = 1.15;
+  scene.add(g);
+  const cowHit = hitSphere(0, .7, 0, .95);
+  g.add(cowHit);
+  makeInteractive(cowHit, '老牛', ()=> toggleCow());
+
+  /* —— 对话面板 —— */
+  const cowEl  = document.getElementById('cow');
+  const logEl  = document.getElementById('cowLog');
+  const quickEl= document.getElementById('cowQuick');
+  const inputEl= document.getElementById('cowIn');
+  const msgs = [];
+  const esc = s => String(s).replace(/[<>&]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
+
+  function renderLog(){
+    if (!logEl) return;
+    logEl.innerHTML = msgs.map(m=>`<div class="cow-msg ${m.role}">${esc(m.text)}</div>`).join('');
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  function push(role, text){
+    msgs.push({ role, text });
+    if (msgs.length > 8) msgs.shift();
+    renderLog();
+  }
+
+  /* —— 规则引擎:能答状态、也能直接执行操作 —— */
+  const RULES = [
+    { re:/季节|什么时候|几月|节气/, fn: ()=>{
+      const tn = termLabel();
+      const po = (curTerm && curTerm.nm === tn) ? curTerm.po : '';
+      return `今天是${tn}，${SEASONS[state.season].label}天。${po}`;
+    } },
+    { re:/下雪|雪天|想看雪/, fn: ()=> { setWeather('snow');  return '好，让雪落下来。'; } },
+    { re:/下雨|雨天|听雨/,   fn: ()=> { setWeather('rain');  return '雨来了，听檐角的水声。'; } },
+    { re:/起雾|雾天/,        fn: ()=> { setWeather('mist');  return '起雾了，远处的树都看不见了。'; } },
+    { re:/打雷|雷雨/,        fn: ()=> { setWeather('storm'); return '雷来了，别站树下。'; } },
+    { re:/晴天|放晴|太阳/,   fn: ()=> { setWeather('clear'); return '云散了。'; } },
+    { re:/天气/,             fn: ()=> `现在${WEATHERS[curWeather].label}。想换就说"下雪""下雨""起雾"。` },
+    { re:/故事|讲个|说点/,   fn: ()=> genStory().join('') },
+    { re:/拍照|照片|截图|相机/, fn: ()=> '更多 → 照片，四个滤镜挑一个，点「拍摄并下载」。' },
+    { re:/许愿|孔明灯|放灯/, fn: ()=> '更多 → 许愿，写一句，灯就升起来了。' },
+    { re:/星座|星星|观星|望远镜/, fn: ()=> '平台左边有架望远镜，点它就能抬头看星星。' },
+    { re:/签到|连续|几天/,   fn: ()=> `已经连着 ${window.__v3 ? window.__v3.streak.days : 1} 天了，火还挺旺。` },
+    { re:/音乐|声音|听点|歌/, fn: ()=> '更多 → 音景，五条轨道（雨/风/篝火/虫鸣/落雪）都能单独调。' },
+    { re:/慢|子弹|时间/,     fn: ()=> '按住空格试试，时间会慢下来。' },
+    { re:/沉浸|壁纸|全屏/,   fn: ()=> '按 I 键，界面会全收起来，只剩风景。' },
+    { re:/你叫什么|你是谁|名字/, fn: ()=> '我是老牛，在这住得比你久一点。' },
+    { re:/你好|在吗|嗨|hi|hello/, fn: ()=> '嗯，我在。' },
+    { re:/帮助|怎么用|能做什么|会什么/, fn: ()=> '你可以问：现在什么季节 / 下雪 / 讲个故事 / 怎么拍照 / 谁在唱歌。' },
+  ];
+  function reply(q){
+    const s = String(q || '').trim();
+    if (!s) return '嗯？';
+    for(const r of RULES){ if (r.re.test(s)) return r.fn(s); }
+    return '这个我还不太懂。你可以问：现在什么季节 / 下雪 / 讲个故事 / 怎么拍照。';
+  }
+  function send(text){
+    const q = (text !== undefined ? text : (inputEl ? inputEl.value : '')) || '';
+    const s = String(q).trim();
+    if (!s) return;
+    push('me', s);
+    setTimeout(()=> push('cow', reply(s)), 220);
+    if (inputEl) inputEl.value = '';
+  }
+  const QUICK = ['现在什么季节', '讲个故事', '下雪', '怎么拍照'];
+  function buildQuick(){
+    if (!quickEl || quickEl.children.length) return;
+    QUICK.forEach(q=>{
+      const c = document.createElement('div');
+      c.className = 'cow-chip';
+      c.textContent = q;
+      c.onclick = ()=> send(q);
+      quickEl.appendChild(c);
+    });
+  }
+  function toggleCow(){
+    if (!cowEl) return;
+    const on = !cowEl.classList.contains('show');
+    cowEl.classList.toggle('show', on);
+    toggleMore(false);
+    if (on){
+      buildQuick();
+      if (!msgs.length) push('cow', '嗯，你来了。有什么想问的？');
+      setTimeout(()=>{ if (inputEl) inputEl.focus(); }, 200);
+    }
+  }
+  const cowSendEl = document.getElementById('cowSend');
+  if (cowSendEl) cowSendEl.onclick = ()=> send();
+  const cowBtnEl = document.getElementById('cowBtn');
+  if (cowBtnEl) cowBtnEl.onclick = ()=> toggleCow();
+  if (inputEl) inputEl.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') send(); });
+  const cowX = document.querySelector('#cow .panel-x');
+  if (cowX) cowX.addEventListener('click', ()=> cowEl.classList.remove('show'));
+  if (cowEl) cowEl.addEventListener('click', (e)=>{ if (e.target === cowEl) cowEl.classList.remove('show'); });
+
+  return { open: toggleCow, send, reply };
+})();
+window.__cow = COW;
 
 /* ============================================================
    15. 动画循环
@@ -3955,11 +4523,40 @@ window.__v4 = V4;
 const clock = new THREE.Clock();
 let firstFrame = true;
 
+/* —— 子弹时间:世界时间缩放 0.14x,雨雪/萤火/烟雾/孔明灯全部慢放 —— */
+let slowMo = false, timeScale = 1, timeScaleTarget = 1, simT = 0;
+function setSlowMo(on){
+  slowMo = !!on;
+  timeScaleTarget = slowMo ? 0.14 : 1;
+  const b = document.getElementById('btnSlow');
+  if (b) b.textContent = slowMo ? '慢镜 · 开' : '慢镜';
+  if (slowMo) toast('子弹时间 · 松开恢复');
+}
+const btnSlowEl = document.getElementById('btnSlow');
+if (btnSlowEl){
+  btnSlowEl.addEventListener('pointerdown', (e)=>{ e.preventDefault(); setSlowMo(true); });
+  btnSlowEl.addEventListener('pointerup',   ()=> setSlowMo(false));
+  btnSlowEl.addEventListener('pointerleave',()=> setSlowMo(false));
+}
+window.__slow = ()=>({ on:slowMo, ts:+timeScale.toFixed(3), target:timeScaleTarget });
+addEventListener('keydown', (e)=>{
+  if (e.code === 'Space' && !slowMo && !e.repeat){ e.preventDefault(); setSlowMo(true); }
+});
+addEventListener('keyup', (e)=>{ if (e.code === 'Space') setSlowMo(false); });
+addEventListener('blur', ()=> setSlowMo(false));
+
 renderer.setAnimationLoop(()=>{
-  const dt = Math.min(clock.getDelta(), .05);
-  const t  = clock.elapsedTime;
+  const dtReal = Math.min(clock.getDelta(), .05);
+  // 时间缩放缓动(进出各约 0.5s)
+  timeScale += (timeScaleTarget - timeScale) * Math.min(1, dtReal * 6);
+  const dt = dtReal * timeScale;
+  simT += dt;
+  const t  = simT;
   uTime.value = t;
   gradePass.uniforms.uTime.value = t;
+  // 慢镜的冷调/暗角/颗粒强度平滑过渡
+  const gs = gradePass.uniforms.uSlow;
+  gs.value += ((slowMo ? 1 : 0) - gs.value) * Math.min(1, dtReal * 5);
 
   // 沉浸模式:缓慢环绕运镜(与 OrbitControls 互斥)
   if (immersive){
@@ -4123,7 +4720,7 @@ renderer.setAnimationLoop(()=>{
   const _starMode = !!(window.__v4 && window.__v4.isStarMode && window.__v4.isStarMode());
   if (_starMode){
     camera.position.set(0, 5.4, 6);
-    camera.lookAt(0, 26, -8);
+    if (window.__v4 && window.__v4.aimStar) window.__v4.aimStar(camera);
     if (starsMat) starsMat.opacity = 1;
   } else if (introT < INTRO){
     introT += dt;
@@ -4138,6 +4735,9 @@ renderer.setAnimationLoop(()=>{
     camera.position.copy(controls.target).add(off);
   }
   if (!_starMode) controls.update();
+  // 相机补光跟随视角,让背光面也能看清材质
+  camFill.position.copy(camera.position);
+  camFill.target.position.copy(controls.target);
   composer.render();
 
   if (firstFrame){
@@ -4151,6 +4751,7 @@ addEventListener('resize', ()=>{
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
   composer.setSize(innerWidth, innerHeight);
+  if (gradePass.uniforms.uRes) gradePass.uniforms.uRes.value.set(innerWidth, innerHeight);
 });
 </script>
 </body>
